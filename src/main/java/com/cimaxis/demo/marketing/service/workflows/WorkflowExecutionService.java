@@ -82,9 +82,9 @@ public class WorkflowExecutionService {
     }
 
     public WorkflowExecution executeWorkflowForClient(Integer workflowId,
-                                                       Integer clientId,
-                                                       String bearerToken,
-                                                       Integer loggedByUserId) {
+                                                   Integer clientId,
+                                                   String bearerToken,
+                                                   Integer loggedByUserId) {
 
         Workflow workflow = workflowRepository.findById(workflowId)
                 .orElseThrow(() -> new RuntimeException("Workflow no encontrado: " + workflowId));
@@ -99,12 +99,16 @@ public class WorkflowExecutionService {
             throw new RuntimeException("Este workflow ya fue ejecutado para el cliente " + clientId);
         }
 
-        // Obtenemos datos del cliente desde el CRM
-        List<Map<String, Object>> clients = crmIntegrationService.getClients(bearerToken);
-        Map<String, Object> clientData = clients.stream()
-                .filter(c -> clientId.equals(crmIntegrationService.extractClientId(c)))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado en CRM: " + clientId));
+        Map<String, Object> clientData = new java.util.HashMap<>();
+        try {
+            List<Map<String, Object>> clients = crmIntegrationService.getClients(bearerToken);
+            clientData = clients.stream()
+                    .filter(c -> clientId.equals(crmIntegrationService.extractClientId(c)))
+                    .findFirst()
+                    .orElse(Map.of("clientId", clientId));
+        } catch (Exception e) {
+            clientData.put("clientId", clientId);
+        }
 
         WorkflowExecution execution = new WorkflowExecution();
         execution.setWorkflowId(workflowId);
@@ -116,11 +120,10 @@ public class WorkflowExecutionService {
             execution.setSentMessage(mensaje);
             execution.setResult(WorkflowExecution.ExecutionResult.success);
 
-            MarketingInteraction interaction = registrarInteraccion(
-                    workflow, clientId, null, loggedByUserId);
-
             execution = executionRepository.save(execution);
-            interaction.setExecutionId(execution.getExecutionId());
+
+            MarketingInteraction interaction = registrarInteraccion(
+                    workflow, clientId, execution.getExecutionId(), loggedByUserId);
             interactionRepository.save(interaction);
 
             return execution;
