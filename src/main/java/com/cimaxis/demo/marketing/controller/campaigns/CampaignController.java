@@ -44,6 +44,8 @@ public class CampaignController {
     @PostMapping
     public ResponseEntity<Campaign> create(@RequestBody Campaign campaign,
                                             HttpServletRequest request) {
+
+        System.out.println("Creando campaña: " + campaign.getCampaignName() + " para cliente ID: " + campaign.getClientId());
         // Tomar el userId del contexto de seguridad
         Integer userId = (Integer) request.getAttribute("userId"); 
         if (userId != null) campaign.setCreatedBy(userId);
