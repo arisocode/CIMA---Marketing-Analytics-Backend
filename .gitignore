@@ -73,3 +73,8 @@ build/
 !.github/
 !.github/workflows/
 !.github/workflows/*.yml
+
+# Maven Wrapper metadata is required for ./mvnw in CI.
+!.mvn/
+!.mvn/wrapper/
+!.mvn/wrapper/maven-wrapper.properties
