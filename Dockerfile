@@ -5,6 +5,7 @@ COPY pom.xml ./
 # Download dependencies first for caching
 RUN mvn dependency:go-offline -B
 COPY src ./src
+COPY gateway ./gateway
 RUN mvn package -DskipTests
 
 # Stage 2: Runtime
