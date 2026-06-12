@@ -69,6 +69,8 @@ build/
 *.yml
 *.properties
 
+!docker-compose.yml
+
 # GitHub Actions workflows must be versioned even though other YAML files are local-only.
 !.github/
 !.github/workflows/

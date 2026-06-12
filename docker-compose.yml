@@ -1,0 +1,25 @@
+services:
+  crm-marketing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3003
+      DATABASE_HOST: postgres_db
+      DATABASE_PORT: 5432
+      DATABASE_NAME: crm_database
+      DB_SCHEMA: schema_marketing
+      DATABASE_USER: marketing_user
+      DATABASE_PASSWORD: ${MARKETING_DB_PASSWORD:-marketingpassword}
+      CRM_BASE_URL: http://api-gateway:8080
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    networks:
+      shared_backplane:
+        aliases:
+          - marketing
