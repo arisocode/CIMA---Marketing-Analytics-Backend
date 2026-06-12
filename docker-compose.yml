@@ -19,6 +19,12 @@ services:
     depends_on:
       postgres_db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3003/actuator/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
       shared_backplane:
         aliases:

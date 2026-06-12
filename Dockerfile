@@ -10,7 +10,7 @@ RUN mvn package -DskipTests
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN apk add --no-cache tini \
+RUN apk add --no-cache tini curl \
     && addgroup -g 1001 -S springuser \
     && adduser -S springuser -u 1001 -G springuser
 USER springuser
