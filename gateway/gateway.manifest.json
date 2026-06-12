@@ -1,0 +1,150 @@
+{
+  "service": "marketing",
+  "version": "1.0.0",
+  "endpoints": [
+    {
+      "endpoint": "/api/v1/marketing/campaigns",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/campaigns",
+      "openapi_ref": "GET /api/marketing/campaigns"
+    },
+    {
+      "endpoint": "/api/v1/marketing/campaigns",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/campaigns",
+      "openapi_ref": "POST /api/marketing/campaigns"
+    },
+    {
+      "endpoint": "/api/v1/marketing/campaigns/{id}",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/campaigns/{id}",
+      "openapi_ref": "GET /api/marketing/campaigns/{id}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/campaigns/{id}",
+      "method": "PUT",
+      "backend_url": "/api/v1/marketing/campaigns/{id}",
+      "openapi_ref": "PUT /api/marketing/campaigns/{id}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/campaigns/{id}",
+      "method": "DELETE",
+      "backend_url": "/api/v1/marketing/campaigns/{id}",
+      "openapi_ref": "DELETE /api/marketing/campaigns/{id}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/campaigns/client/{clientId}",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/campaigns/client/{clientId}",
+      "openapi_ref": "GET /api/marketing/campaigns/client/{clientId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/workflows",
+      "openapi_ref": "GET /api/marketing/workflows"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/workflows",
+      "openapi_ref": "POST /api/marketing/workflows"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows/{id}",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/workflows/{id}",
+      "openapi_ref": "GET /api/marketing/workflows/{id}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows/{id}",
+      "method": "PUT",
+      "backend_url": "/api/v1/marketing/workflows/{id}",
+      "openapi_ref": "PUT /api/marketing/workflows/{id}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows/{id}",
+      "method": "DELETE",
+      "backend_url": "/api/v1/marketing/workflows/{id}",
+      "openapi_ref": "DELETE /api/marketing/workflows/{id}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows/campaign/{campaignId}",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/workflows/campaign/{campaignId}",
+      "openapi_ref": "GET /api/marketing/workflows/campaign/{campaignId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows/active",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/workflows/active",
+      "openapi_ref": "GET /api/marketing/workflows/active"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows/{id}/toggle",
+      "method": "PATCH",
+      "backend_url": "/api/v1/marketing/workflows/{id}/toggle",
+      "openapi_ref": "PATCH /api/marketing/workflows/{id}/toggle"
+    },
+    {
+      "endpoint": "/api/v1/marketing/executions/run/{workflowId}",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/executions/run/{workflowId}",
+      "openapi_ref": "POST /api/marketing/executions/run/{workflowId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/executions/run/{workflowId}/client/{clientId}",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/executions/run/{workflowId}/client/{clientId}",
+      "openapi_ref": "POST /api/marketing/executions/run/{workflowId}/client/{clientId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/executions/workflow/{workflowId}",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/executions/workflow/{workflowId}",
+      "openapi_ref": "GET /api/marketing/executions/workflow/{workflowId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/executions/client/{clientId}",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/executions/client/{clientId}",
+      "openapi_ref": "GET /api/marketing/executions/client/{clientId}"
+    },
+    {
+      "endpoint": "/api/v1/analytics/summary",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/summary",
+      "openapi_ref": "GET /api/analytics/summary"
+    },
+    {
+      "endpoint": "/api/v1/analytics/customers/plan-distribution",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/customers/plan-distribution",
+      "openapi_ref": "GET /api/analytics/customers/plan-distribution"
+    },
+    {
+      "endpoint": "/api/v1/analytics/customers/activity",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/customers/activity",
+      "openapi_ref": "GET /api/analytics/customers/activity"
+    },
+    {
+      "endpoint": "/api/v1/analytics/campaigns/status",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/campaigns/status",
+      "openapi_ref": "GET /api/analytics/campaigns/status"
+    },
+    {
+      "endpoint": "/api/v1/analytics/inventory/low-stock",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/inventory/low-stock",
+      "openapi_ref": "GET /api/analytics/inventory/low-stock"
+    },
+    {
+      "endpoint": "/api/v1/analytics/kpis",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/kpis",
+      "openapi_ref": "GET /api/analytics/kpis"
+    }
+  ]
+}
