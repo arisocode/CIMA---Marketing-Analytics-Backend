@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-marketing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    uses: SebasCarvajal11/crm-infra/.github/workflows/reusable-ci.yml@v2.2.0
+    with:
+      component: marketing
+      language: java
+      build_tool: maven
+      runs_db: true
+      runs_redis: true
+      db_schema: schema_marketing
+    secrets: inherit
