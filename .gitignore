@@ -78,3 +78,6 @@ build/
 !.mvn/
 !.mvn/wrapper/
 !.mvn/wrapper/maven-wrapper.properties
+
+# Spring Boot application defaults are part of the service contract.
+!src/main/resources/*.properties
