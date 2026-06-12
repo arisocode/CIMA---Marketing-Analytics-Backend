@@ -37,7 +37,7 @@ public class WorkflowExecutionService {
     // Ejecuta un workflow sobre todos los clientes del CRM
     public List<WorkflowExecution> executeWorkflow(Integer workflowId,
                                                     String bearerToken,
-                                                    Integer loggedByUserId) {
+                                                    String loggedByUserId) {
 
         Workflow workflow = workflowRepository.findById(workflowId)
                 .orElseThrow(() -> new RuntimeException("Workflow no encontrado: " + workflowId));
@@ -51,7 +51,7 @@ public class WorkflowExecutionService {
         List<WorkflowExecution> results = new ArrayList<>();
 
         for (Map<String, Object> client : clients) {
-            Integer clientId = crmIntegrationService.extractClientId(client);
+            String clientId = crmIntegrationService.extractClientId(client);
             if (clientId == null) continue;
 
             boolean yaEjecutado = executionRepository
@@ -82,9 +82,9 @@ public class WorkflowExecutionService {
     }
 
     public WorkflowExecution executeWorkflowForClient(Integer workflowId,
-                                                   Integer clientId,
+                                                   String clientId,
                                                    String bearerToken,
-                                                   Integer loggedByUserId) {
+                                                   String loggedByUserId) {
 
         Workflow workflow = workflowRepository.findById(workflowId)
                 .orElseThrow(() -> new RuntimeException("Workflow no encontrado: " + workflowId));
@@ -105,9 +105,9 @@ public class WorkflowExecutionService {
             clientData = clients.stream()
                     .filter(c -> clientId.equals(crmIntegrationService.extractClientId(c)))
                     .findFirst()
-                    .orElse(Map.of("clientId", clientId));
+                    .orElse(Map.of("id", clientId));
         } catch (Exception e) {
-            clientData.put("clientId", clientId);
+            clientData.put("id", clientId);
         }
 
         WorkflowExecution execution = new WorkflowExecution();
@@ -146,9 +146,9 @@ public class WorkflowExecutionService {
     }
 
     private MarketingInteraction registrarInteraccion(Workflow workflow,
-                                                       Integer clientId,
+                                                       String clientId,
                                                        Integer executionId,
-                                                       Integer loggedBy) {
+                                                       String loggedBy) {
         MarketingInteraction interaction = new MarketingInteraction();
         interaction.setCampaignId(workflow.getCampaignId());
         interaction.setClientId(clientId);
@@ -173,7 +173,7 @@ public class WorkflowExecutionService {
         return executionRepository.findByWorkflowId(workflowId);
     }
 
-    public List<WorkflowExecution> getExecutionsByClient(Integer clientId) {
+    public List<WorkflowExecution> getExecutionsByClient(String clientId) {
         return executionRepository.findByClientId(clientId);
     }
 }

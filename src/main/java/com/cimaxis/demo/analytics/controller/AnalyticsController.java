@@ -16,7 +16,7 @@ import com.cimaxis.demo.analytics.dto.KpiSnapshotDto;
 import com.cimaxis.demo.analytics.service.AnalyticsService;
 
 @RestController
-@RequestMapping("/api/analytics")
+@RequestMapping("/api/v1/analytics")
 /**
  * Controller REST que expone los endpoints del módulo Analytics.
  *

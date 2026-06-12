@@ -32,5 +32,5 @@ public class KpiSnapshotDto {
     private BigDecimal responseRate;
     private BigDecimal avgCloseDays;
     private Integer projectsInProgress;
-    private Integer calculatedBy;
+    private String calculatedBy;
 }

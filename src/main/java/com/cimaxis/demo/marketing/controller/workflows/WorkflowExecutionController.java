@@ -10,7 +10,7 @@ import com.cimaxis.demo.marketing.service.workflows.WorkflowExecutionService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/marketing/executions")
+@RequestMapping("/api/v1/marketing/executions")
 public class WorkflowExecutionController {
 
     private final WorkflowExecutionService executionService;
@@ -26,7 +26,7 @@ public class WorkflowExecutionController {
             HttpServletRequest request) {
 
         String token = extractToken(request);
-        Integer userId = (Integer) request.getAttribute("userId");
+        String userId = (String) request.getAttribute("userId");
 
         List<WorkflowExecution> results =
                 executionService.executeWorkflow(workflowId, token, userId);
@@ -38,11 +38,11 @@ public class WorkflowExecutionController {
     @PostMapping("/run/{workflowId}/client/{clientId}")
     public ResponseEntity<WorkflowExecution> runWorkflowForClient(
             @PathVariable Integer workflowId,
-            @PathVariable Integer clientId,
+            @PathVariable String clientId,
             HttpServletRequest request) {
 
         String token = extractToken(request);
-        Integer userId = (Integer) request.getAttribute("userId");
+        String userId = (String) request.getAttribute("userId");
 
         WorkflowExecution result =
                 executionService.executeWorkflowForClient(workflowId, clientId, token, userId);
@@ -58,7 +58,7 @@ public class WorkflowExecutionController {
 
     // Consultar ejecuciones de un cliente
     @GetMapping("/client/{clientId}")
-    public ResponseEntity<List<WorkflowExecution>> getByClient(@PathVariable Integer clientId) {
+    public ResponseEntity<List<WorkflowExecution>> getByClient(@PathVariable String clientId) {
         return ResponseEntity.ok(executionService.getExecutionsByClient(clientId));
     }
 

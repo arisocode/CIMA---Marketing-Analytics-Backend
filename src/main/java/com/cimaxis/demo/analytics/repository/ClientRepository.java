@@ -10,7 +10,7 @@ import com.cimaxis.demo.analytics.domain.Client;
  * Repository JPA para operaciones sobre `CLIENTS`.
  * Contiene consultas específicas usadas por el módulo de analytics.
  */
-public interface ClientRepository extends JpaRepository<Client, Integer> {
+public interface ClientRepository extends JpaRepository<Client, String> {
 
     /**
      * Cuenta clientes por plan.

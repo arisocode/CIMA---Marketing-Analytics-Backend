@@ -9,7 +9,7 @@ import com.cimaxis.demo.analytics.domain.Project;
 /**
  * Repository JPA para la entidad `PROJECTS`.
  */
-public interface ProjectRepository extends JpaRepository<Project, Integer> {
+public interface ProjectRepository extends JpaRepository<Project, String> {
 
     /**
      * Cuenta proyectos por su estado (p.ej. 'In Progress').
@@ -19,5 +19,5 @@ public interface ProjectRepository extends JpaRepository<Project, Integer> {
     /**
      * Cuenta proyectos por cliente.
      */
-    long countByClientId(Integer clientId);
+    long countByClientId(String clientId);
 }

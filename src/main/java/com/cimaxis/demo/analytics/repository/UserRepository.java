@@ -9,5 +9,5 @@ import com.cimaxis.demo.analytics.domain.User;
 /**
  * Repository JPA para la entidad `USERS`.
  */
-public interface UserRepository extends JpaRepository<User, Integer> {
+public interface UserRepository extends JpaRepository<User, String> {
 }

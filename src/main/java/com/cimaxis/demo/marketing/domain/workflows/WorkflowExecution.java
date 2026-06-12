@@ -32,8 +32,8 @@ public class WorkflowExecution {
     @Column(name = "workflow_id", nullable = false)
     private Integer workflowId;
 
-    @Column(name = "client_id", nullable = false)
-    private Integer clientId;
+    @Column(name = "client_id", nullable = false, length = 36)
+    private String clientId;
 
     @Column(name = "executed_at")
     private LocalDateTime executedAt;

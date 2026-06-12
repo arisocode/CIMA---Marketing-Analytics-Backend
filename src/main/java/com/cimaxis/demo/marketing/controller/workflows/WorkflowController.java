@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/marketing/workflows")
+@RequestMapping("/api/v1/marketing/workflows")
 public class WorkflowController {
 
     private final WorkflowRepository workflowRepository;

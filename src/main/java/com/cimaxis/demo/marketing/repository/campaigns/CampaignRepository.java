@@ -11,9 +11,9 @@ import java.util.List;
 @Repository
 public interface CampaignRepository extends JpaRepository<Campaign, Integer> {
     
-    List<Campaign> findByClientId(Integer clientId);
+    List<Campaign> findByClientId(String clientId);
     
     List<Campaign> findByStatus(Campaign.CampaignStatus status);
     
-    List<Campaign> findByCreatedBy(Integer createdBy);
+    List<Campaign> findByCreatedBy(String createdBy);
 }

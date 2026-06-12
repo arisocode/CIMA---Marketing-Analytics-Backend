@@ -64,6 +64,6 @@ public class KpiSnapshot {
     @Column(name = "projects_in_progress")
     private Integer projectsInProgress;
 
-    @Column(name = "calculated_by")
-    private Integer calculatedBy;
+    @Column(name = "calculated_by", length = 36)
+    private String calculatedBy;
 }

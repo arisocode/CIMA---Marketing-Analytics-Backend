@@ -15,7 +15,7 @@ public class CrmAuthClient {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String login(String email, String password) {
-        String url = crmBaseUrl + "/api/v1/core/users/login";
+        String url = crmBaseUrl + "/api/v1/auth/login";
 
         Map<String, String> body = Map.of("email", email, "password", password);
         HttpHeaders headers = new HttpHeaders();
@@ -25,8 +25,11 @@ public class CrmAuthClient {
         ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
         Map<?, ?> responseBody = response.getBody();
-        if (responseBody != null && responseBody.containsKey("accessToken")) {
-            return (String) responseBody.get("accessToken");
+        if (responseBody != null && responseBody.containsKey("data")) {
+            Map<?, ?> data = (Map<?, ?>) responseBody.get("data");
+            if (data != null && data.containsKey("access_token")) {
+                return (String) data.get("access_token");
+            }
         }
         throw new RuntimeException("No se pudo obtener el token del CRM");
     }

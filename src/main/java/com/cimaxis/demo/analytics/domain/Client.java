@@ -31,12 +31,11 @@ public class Client {
      */
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "client_id")
-    private Integer clientId;
+    @Column(name = "client_id", length = 36)
+    private String clientId;
 
-    @Column(name = "user_id", nullable = false)
-    private Integer userId;
+    @Column(name = "user_id", nullable = false, length = 36)
+    private String userId;
 
     @Column(name = "contact_info", length = 255)
     private String contactInfo;

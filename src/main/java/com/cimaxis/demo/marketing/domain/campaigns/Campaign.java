@@ -38,14 +38,14 @@ public class Campaign {
     @Column(name = "campaign_type", nullable = false)
     private CampaignType campaignType;
 
-    @Column(name = "client_id", nullable = false)
-    private Integer clientId;
+    @Column(name = "client_id", nullable = false, length = 36)
+    private String clientId;
 
-    @Column(name = "project_id")
-    private Integer projectId;
+    @Column(name = "project_id", length = 36)
+    private String projectId;
 
-    @Column(name = "created_by", nullable = false)
-    private Integer createdBy;
+    @Column(name = "created_by", nullable = false, length = 36)
+    private String createdBy;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;

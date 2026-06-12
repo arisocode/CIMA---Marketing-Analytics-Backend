@@ -21,7 +21,7 @@ public class ClientActivityDto {
      * - `projectCount`: número de proyectos asociados
      */
 
-    private Integer clientId;
+    private String clientId;
     private String plan;
     private long campaignCount;
     private long projectCount;

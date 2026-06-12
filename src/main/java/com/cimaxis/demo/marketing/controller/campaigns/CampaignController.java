@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/marketing/campaigns")
+@RequestMapping("/api/v1/marketing/campaigns")
 public class CampaignController {
 
     private final CampaignRepository campaignRepository;
@@ -36,7 +36,7 @@ public class CampaignController {
 
     // Obtengo campañas por cliente
     @GetMapping("/client/{clientId}")
-    public ResponseEntity<List<Campaign>> getByClient(@PathVariable Integer clientId) {
+    public ResponseEntity<List<Campaign>> getByClient(@PathVariable String clientId) {
         return ResponseEntity.ok(campaignRepository.findByClientId(clientId));
     }
 
@@ -47,7 +47,7 @@ public class CampaignController {
 
         System.out.println("Creando campaña: " + campaign.getCampaignName() + " para cliente ID: " + campaign.getClientId());
         // Tomar el userId del contexto de seguridad
-        Integer userId = (Integer) request.getAttribute("userId"); 
+        String userId = (String) request.getAttribute("userId");
         if (userId != null) campaign.setCreatedBy(userId);
 
         campaign.setCreatedAt(LocalDateTime.now());

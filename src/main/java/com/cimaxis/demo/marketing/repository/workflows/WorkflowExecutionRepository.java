@@ -12,7 +12,7 @@ public interface WorkflowExecutionRepository extends JpaRepository<WorkflowExecu
     
     List<WorkflowExecution> findByWorkflowId(Integer workflowId);
     
-    List<WorkflowExecution> findByClientId(Integer clientId);
+    List<WorkflowExecution> findByClientId(String clientId);
     
-    boolean existsByWorkflowIdAndClientId(Integer workflowId, Integer clientId);
+    boolean existsByWorkflowIdAndClientId(Integer workflowId, String clientId);
 }

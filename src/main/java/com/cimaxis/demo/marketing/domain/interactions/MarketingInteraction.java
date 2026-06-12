@@ -32,14 +32,14 @@ public class MarketingInteraction {
     @Column(name = "campaign_id", nullable = false)
     private Integer campaignId;
 
-    @Column(name = "client_id", nullable = false)
-    private Integer clientId;
+    @Column(name = "client_id", nullable = false, length = 36)
+    private String clientId;
 
     @Column(name = "execution_id")
     private Integer executionId;
 
-    @Column(name = "logged_by")
-    private Integer loggedBy;
+    @Column(name = "logged_by", length = 36)
+    private String loggedBy;
 
     @Column(name = "contact_date")
     private LocalDateTime contactDate;

@@ -16,7 +16,7 @@ public class CrmClientClient {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public List<Map<String, Object>> getClients(String bearerToken) {
-        String url = crmBaseUrl + "/api/v1/core/clients";
+        String url = crmBaseUrl + "/api/v1/admin/users?role=client";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(bearerToken);
@@ -26,8 +26,11 @@ public class CrmClientClient {
             url, HttpMethod.GET, request, Map.class);
 
         Map<String, Object> body = response.getBody();
-        if (body != null && body.containsKey("clients")) {
-            return (List<Map<String, Object>>) body.get("clients");
+        if (body != null && body.containsKey("data")) {
+            Map<?, ?> data = (Map<?, ?>) body.get("data");
+            if (data != null && data.containsKey("items")) {
+                return (List<Map<String, Object>>) data.get("items");
+            }
         }
         return List.of();
     }

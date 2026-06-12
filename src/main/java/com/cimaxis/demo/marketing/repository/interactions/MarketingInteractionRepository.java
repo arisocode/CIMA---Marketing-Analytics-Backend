@@ -12,7 +12,7 @@ public interface MarketingInteractionRepository extends JpaRepository<MarketingI
     
     List<MarketingInteraction> findByCampaignId(Integer campaignId);
     
-    List<MarketingInteraction> findByClientId(Integer clientId);
+    List<MarketingInteraction> findByClientId(String clientId);
     
     List<MarketingInteraction> findByExecutionId(Integer executionId);
 }

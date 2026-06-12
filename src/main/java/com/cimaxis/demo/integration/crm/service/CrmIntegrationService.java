@@ -39,16 +39,27 @@ public class CrmIntegrationService {
         }
     }
 
-    public Integer extractClientId(Map<String, Object> client) {
-        Object id = client.get("clientId");
+    public String extractClientId(Map<String, Object> client) {
+        Object id = client.get("id");
+        if (id == null) id = client.get("clientId");
         if (id == null) id = client.get("client_id");
-        if (id instanceof Integer) return (Integer) id;
-        if (id instanceof Long) return ((Long) id).intValue();
+        if (id == null) id = client.get("subject");
+        if (id instanceof String) return (String) id;
+        if (id != null) return id.toString();
         return null;
     }
 
     public String extractClientName(Map<String, Object> client) {
         if (client.containsKey("name")) return (String) client.get("name");
+        if (client.containsKey("first_name") || client.containsKey("firstName")) {
+            String first = (String) (client.containsKey("first_name") ? client.get("first_name") : client.get("firstName"));
+            String last = (String) (client.containsKey("last_name") ? client.get("last_name") : client.get("lastName"));
+            if (first != null || last != null) {
+                return ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+            }
+        }
+        if (client.containsKey("company_name")) return (String) client.get("company_name");
+        if (client.containsKey("companyName")) return (String) client.get("companyName");
         if (client.containsKey("email")) return (String) client.get("email");
         return "Cliente desconocido";
     }
