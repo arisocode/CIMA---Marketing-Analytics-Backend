@@ -47,6 +47,22 @@ Este repositorio pertenece al equipo de marketing, pero esta integrado al flujo 
 
 El servicio corre por defecto en `http://localhost:3003`.
 
+## Configuracion de produccion
+
+El despliegue central espera `crm-marketing/.env.production` en el servidor. Crear ese archivo desde `.env.production.example` y reemplazar `DATABASE_PASSWORD=change-me` por el mismo valor configurado como `MARKETING_DB_PASSWORD` en `crm-infra/.env.production`.
+
+Los valores productivos esperados para base de datos son:
+
+```env
+DATABASE_HOST=postgres_db
+DATABASE_PORT=5432
+DATABASE_NAME=crm_database
+DB_SCHEMA=schema_marketing
+DATABASE_USER=marketing_user
+```
+
+El script remoto de despliegue valida que `MARKETING_DB_PASSWORD` y `DATABASE_PASSWORD` existan, no sean placeholders y coincidan antes de levantar el stack.
+
 ## Pruebas y build
 
 Los tests usan Testcontainers con PostgreSQL 16. Por eso no necesitan una base local previa, pero si requieren Docker activo.
