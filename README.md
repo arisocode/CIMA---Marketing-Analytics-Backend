@@ -99,7 +99,7 @@ Ese endpoint no requiere JWT para que `crm-infra` pueda generar configuracion de
 El workflow local `.github/workflows/ci.yml` invoca el reusable central:
 
 ```text
-SebasCarvajal11/crm-infra/.github/workflows/reusable-ci.yml@v2.2.0
+SebasCarvajal11/crm-infra/.github/workflows/reusable-ci.yml@v2.2.1
 ```
 
 En cada push o pull request se valida:
