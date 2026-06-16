@@ -71,9 +71,7 @@ Desde `crm-infra`:
 ```bash
 cd crm-infra
 cp .env.example .env
-pnpm install
-pnpm compose:generate
-docker compose up -d postgres_db redis api-gateway
+docker compose -f docker-compose.marketing-local.yml up -d postgres_db redis api-gateway
 ```
 
 En Windows PowerShell:
@@ -81,9 +79,7 @@ En Windows PowerShell:
 ```powershell
 cd crm-infra
 Copy-Item .env.example .env
-pnpm install
-pnpm compose:generate
-docker compose up -d postgres_db redis api-gateway
+docker compose -f docker-compose.marketing-local.yml up -d postgres_db redis api-gateway
 ```
 
 Despues de copiar `.env.example`, dejar estas variables asi para este flujo:
@@ -95,11 +91,9 @@ POSTGRES_HOST_PORT=15432
 REDIS_HOST_PORT=16379
 AUTH_DB_PASSWORD=authpassword
 MARKETING_DB_PASSWORD=marketingpassword
-KRAKEND_AUTH_HOST=http://host.docker.internal:3000
-KRAKEND_MARKETING_HOST=http://host.docker.internal:3003
 ```
 
-`KRAKEND_AUTH_HOST` y `KRAKEND_MARKETING_HOST` apuntan desde el contenedor del gateway hacia los servicios levantados en la maquina local.
+Usar `docker-compose.marketing-local.yml` es importante: ese archivo levanta solo Postgres, Redis y el gateway necesario para Auth + Marketing. No requiere tener clonados `crm-collab` ni `crm-media`.
 
 Esto deja disponible:
 
