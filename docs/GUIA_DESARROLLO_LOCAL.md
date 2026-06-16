@@ -70,10 +70,36 @@ Desde `crm-infra`:
 
 ```bash
 cd crm-infra
+cp .env.example .env
 pnpm install
 pnpm compose:generate
 docker compose up -d postgres_db redis api-gateway
 ```
+
+En Windows PowerShell:
+
+```powershell
+cd crm-infra
+Copy-Item .env.example .env
+pnpm install
+pnpm compose:generate
+docker compose up -d postgres_db redis api-gateway
+```
+
+Despues de copiar `.env.example`, dejar estas variables asi para este flujo:
+
+```env
+COMPOSE_PROJECT_NAME=crm_infra_local
+GATEWAY_HOST_PORT=18080
+POSTGRES_HOST_PORT=15432
+REDIS_HOST_PORT=16379
+AUTH_DB_PASSWORD=authpassword
+MARKETING_DB_PASSWORD=marketingpassword
+KRAKEND_AUTH_HOST=http://host.docker.internal:3000
+KRAKEND_MARKETING_HOST=http://host.docker.internal:3003
+```
+
+`KRAKEND_AUTH_HOST` y `KRAKEND_MARKETING_HOST` apuntan desde el contenedor del gateway hacia los servicios levantados en la maquina local.
 
 Esto deja disponible:
 
@@ -116,12 +142,15 @@ NODE_ENV=development
 EXPOSE_TEMP_PASSWORDS=false
 REFRESH_COOKIE_PATH=/api/v1/auth/refresh
 REDIS_URL=redis://127.0.0.1:16379
+AUTH_EVENTS_STREAM_KEY=stream:auth.identity
+AUTH_EVENTS_STREAM_MAXLEN=10000
 PORT=3000
 JWT_PRIVATE_KEY=<copiar desde pnpm jwt:gen-keys>
 JWT_PUBLIC_KEY=<copiar desde pnpm jwt:gen-keys>
 JWT_KID=mod-auth-rsa-1
 APP_PUBLIC_URL=http://localhost:5173
 MAIL_TRANSPORT=log
+MAIL_FROM="CIMA CRM <noreply@example.com>"
 ADMIN_INVITE_SECRET=local-admin-secret
 ```
 
@@ -183,9 +212,9 @@ DATABASE_HOST=localhost
 DATABASE_PORT=15432
 DATABASE_NAME=crm_database
 DB_SCHEMA=schema_marketing
-DATABASE_USER=root
-DATABASE_PASSWORD=rootpassword
-CRM_BASE_URL=http://localhost:8080
+DATABASE_USER=marketing_user
+DATABASE_PASSWORD=marketingpassword
+CRM_BASE_URL=http://localhost:18080
 ```
 
 ## 4. Levantar frontend
@@ -217,7 +246,11 @@ http://localhost:5173
 El frontend usa el gateway por proxy:
 
 ```env
+VITE_API_BASE_URL=
 VITE_API_PROXY_TARGET=http://localhost:18080
+VITE_AUTH_API_VERSION=v1
+VITE_COLLAB_API_VERSION=v1
+VITE_MEDIA_API_VERSION=v1
 ```
 
 ## Autenticacion
