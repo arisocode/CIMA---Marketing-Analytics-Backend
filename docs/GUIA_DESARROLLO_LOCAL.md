@@ -112,12 +112,20 @@ Para desarrollo local, dejar tambien:
 ```env
 DATABASE_URL=postgres://auth_user:authpassword@localhost:15432/crm_database
 DB_SCHEMA=schema_auth
+NODE_ENV=development
+EXPOSE_TEMP_PASSWORDS=false
+REFRESH_COOKIE_PATH=/api/v1/auth/refresh
 REDIS_URL=redis://127.0.0.1:16379
 PORT=3000
+JWT_PRIVATE_KEY=<copiar desde pnpm jwt:gen-keys>
+JWT_PUBLIC_KEY=<copiar desde pnpm jwt:gen-keys>
+JWT_KID=mod-auth-rsa-1
 APP_PUBLIC_URL=http://localhost:5173
 MAIL_TRANSPORT=log
 ADMIN_INVITE_SECRET=local-admin-secret
 ```
+
+No hace falta configurar SMTP real, Brevo, secretos productivos ni llaves JWT del servidor para desarrollo local.
 
 Preparar base de datos y usuarios de prueba:
 
