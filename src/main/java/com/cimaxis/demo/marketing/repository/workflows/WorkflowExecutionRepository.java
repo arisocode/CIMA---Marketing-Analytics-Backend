@@ -2,6 +2,7 @@ package com.cimaxis.demo.marketing.repository.workflows;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,7 +18,19 @@ public interface WorkflowExecutionRepository extends JpaRepository<WorkflowExecu
 
     List<WorkflowExecution> findByClientId(String clientId);
 
-    boolean existsByWorkflowIdAndClientId(Integer workflowId, String clientId);
+    boolean existsByWorkflowIdAndClientIdAndResult(
+            Integer workflowId,
+            String clientId,
+            WorkflowExecution.ExecutionResult result);
+
+    long countByWorkflowIdAndClientIdAndResult(
+            Integer workflowId,
+            String clientId,
+            WorkflowExecution.ExecutionResult result);
+
+    Optional<WorkflowExecution> findFirstByWorkflowIdAndClientIdOrderByExecutedAtDesc(
+            Integer workflowId,
+            String clientId);
 
     List<WorkflowExecution> findByExecutedAtBetween(LocalDateTime from, LocalDateTime to);
 

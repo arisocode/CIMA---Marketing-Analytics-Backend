@@ -10,6 +10,7 @@ import com.cimaxis.demo.analytics.domain.Client;
 import com.cimaxis.demo.analytics.repository.ClientRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,12 @@ public class WorkflowExecutionService {
     private final NotificationDispatcher notificationDispatcher;
     private final WorkflowExecutionMapper executionMapper;
     private final ClientRepository clientRepository;
+
+    @Value("${cimaxis.scheduler.retry-delay-minutes:60}")
+    private long retryDelayMinutes;
+
+    @Value("${cimaxis.scheduler.max-delivery-attempts:3}")
+    private long maxDeliveryAttempts;
 
     public WorkflowExecutionService(
             WorkflowRepository workflowRepository,
@@ -77,7 +84,7 @@ public class WorkflowExecutionService {
         for (Map<String, Object> client : clients) {
             String clientId = crmIntegrationService.extractClientId(client);
             if (clientId == null) continue;
-            if (executionRepository.existsByWorkflowIdAndClientId(workflowId, clientId)) continue;
+            if (!canDispatch(workflowId, clientId)) continue;
 
             results.add(runSingle(workflow, clientId, client, loggedByUserId));
         }
@@ -93,9 +100,9 @@ public class WorkflowExecutionService {
 
         Workflow workflow = requireActiveWorkflow(workflowId);
 
-        if (executionRepository.existsByWorkflowIdAndClientId(workflowId, clientId)) {
+        if (!canDispatch(workflowId, clientId)) {
             throw new IllegalStateException(
-                    "Este workflow ya fue ejecutado para el cliente " + clientId);
+                    "El workflow no puede ejecutarse todavia para el cliente " + clientId);
         }
 
         return executionMapper.toResponse(
@@ -113,7 +120,7 @@ public class WorkflowExecutionService {
         List<WorkflowExecution> results = new ArrayList<>();
         for (String clientId : clientIds) {
             if (clientId == null) continue;
-            if (executionRepository.existsByWorkflowIdAndClientId(workflow.getWorkflowId(), clientId)) continue;
+            if (!canDispatch(workflow.getWorkflowId(), clientId)) continue;
             results.add(runSingle(workflow, clientId, resolveClientData(clientId, bearerToken), loggedByUserId));
         }
         return results;
@@ -125,6 +132,31 @@ public class WorkflowExecutionService {
 
     public List<WorkflowExecutionResponse> getExecutionsByClient(String clientId) {
         return executionMapper.toResponseList(executionRepository.findByClientId(clientId));
+    }
+
+    /**
+     * Evita duplicar entregas exitosas y habilita reintentos acotados para
+     * fallos transitorios. Cada reintento debe respetar la ventana configurada.
+     */
+    private boolean canDispatch(Integer workflowId, String clientId) {
+        if (executionRepository.existsByWorkflowIdAndClientIdAndResult(
+                workflowId, clientId, WorkflowExecution.ExecutionResult.success)) {
+            return false;
+        }
+
+        long failedAttempts = executionRepository.countByWorkflowIdAndClientIdAndResult(
+                workflowId, clientId, WorkflowExecution.ExecutionResult.failed);
+        if (failedAttempts >= maxDeliveryAttempts) {
+            return false;
+        }
+
+        return executionRepository.findFirstByWorkflowIdAndClientIdOrderByExecutedAtDesc(
+                        workflowId, clientId)
+                .map(lastExecution -> lastExecution.getExecutedAt() == null
+                        || !lastExecution.getExecutedAt()
+                                .plusMinutes(retryDelayMinutes)
+                                .isAfter(LocalDateTime.now()))
+                .orElse(true);
     }
 
     private WorkflowExecution runSingle(Workflow workflow,
