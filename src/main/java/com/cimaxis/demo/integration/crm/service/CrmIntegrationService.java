@@ -50,17 +50,25 @@ public class CrmIntegrationService {
     }
 
     public String extractClientName(Map<String, Object> client) {
-        if (client.containsKey("name")) return (String) client.get("name");
-        if (client.containsKey("first_name") || client.containsKey("firstName")) {
-            String first = (String) (client.containsKey("first_name") ? client.get("first_name") : client.get("firstName"));
-            String last = (String) (client.containsKey("last_name") ? client.get("last_name") : client.get("lastName"));
-            if (first != null || last != null) {
-                return ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
-            }
+        if (client == null) return "Cliente";
+        if (client.get("name") != null && !client.get("name").toString().isBlank()) {
+            return client.get("name").toString();
         }
-        if (client.containsKey("company_name")) return (String) client.get("company_name");
-        if (client.containsKey("companyName")) return (String) client.get("companyName");
-        if (client.containsKey("email")) return (String) client.get("email");
-        return "Cliente desconocido";
+        Object first = client.get("first_name") != null ? client.get("first_name") : client.get("firstName");
+        Object last = client.get("last_name") != null ? client.get("last_name") : client.get("lastName");
+        if (first != null || last != null) {
+            String fullName = ((first != null ? first.toString() : "") + " " + (last != null ? last.toString() : "")).trim();
+            if (!fullName.isBlank()) return fullName;
+        }
+        if (client.get("company_name") != null && !client.get("company_name").toString().isBlank()) {
+            return client.get("company_name").toString();
+        }
+        if (client.get("companyName") != null && !client.get("companyName").toString().isBlank()) {
+            return client.get("companyName").toString();
+        }
+        if (client.get("email") != null && !client.get("email").toString().isBlank()) {
+            return client.get("email").toString();
+        }
+        return "Cliente";
     }
 }

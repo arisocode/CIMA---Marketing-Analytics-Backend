@@ -137,12 +137,16 @@ public class WorkflowExecutionService {
 
     private String buildMessage(Workflow workflow, Map<String, Object> client) {
         String template = workflow.getMessageTemplate();
+        String wfName = workflow.getWorkflowName() != null ? workflow.getWorkflowName() : "CIMA";
         if (template == null || template.isBlank()) {
-            return "Seguimiento automático - " + workflow.getWorkflowName();
+            return "Seguimiento automático - " + wfName;
         }
         String nombre = crmIntegrationService.extractClientName(client);
+        if (nombre == null || nombre.isBlank()) {
+            nombre = "Cliente";
+        }
         return template.replace("{nombre}", nombre)
-                       .replace("{workflow}", workflow.getWorkflowName());
+                       .replace("{workflow}", wfName);
     }
 
     private MarketingInteraction registrarInteraccion(Workflow workflow,
