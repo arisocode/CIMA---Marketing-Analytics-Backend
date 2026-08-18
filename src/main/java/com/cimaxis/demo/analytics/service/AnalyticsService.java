@@ -1,42 +1,40 @@
 package com.cimaxis.demo.analytics.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.cimaxis.demo.config.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.cimaxis.demo.analytics.domain.Client;
 import com.cimaxis.demo.analytics.domain.Inventory;
-import com.cimaxis.demo.analytics.domain.KpiSnapshot;
-import com.cimaxis.demo.analytics.domain.Project;
 import com.cimaxis.demo.analytics.dto.AnalyticsSummaryDto;
 import com.cimaxis.demo.analytics.dto.CampaignStatusReportDto;
 import com.cimaxis.demo.analytics.dto.ClientActivityDto;
 import com.cimaxis.demo.analytics.dto.ClientPlanDistributionDto;
 import com.cimaxis.demo.analytics.dto.InventoryAlertDto;
 import com.cimaxis.demo.analytics.dto.KpiSnapshotDto;
+import com.cimaxis.demo.analytics.mapper.KpiSnapshotMapper;
 import com.cimaxis.demo.analytics.repository.ClientRepository;
 import com.cimaxis.demo.analytics.repository.InventoryRepository;
 import com.cimaxis.demo.analytics.repository.KpiSnapshotRepository;
 import com.cimaxis.demo.analytics.repository.ProductRepository;
 import com.cimaxis.demo.analytics.repository.ProjectRepository;
 import com.cimaxis.demo.analytics.repository.UserRepository;
+import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
-import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
 
+/**
+ * Servicio que agrupa consultas y logica de negocio para generar
+ * reportes y metricas a partir de las tablas del sistema.
+ */
 @Service
 public class AnalyticsService {
-
-        /**
-         * Servicio que agrupa consultas y lógica de negocio para generar
-         * reportes y métricas a partir de las tablas del sistema.
-         *
-         * Este servicio debe permanecer libre de lógica HTTP y devolver DTOs
-         * que luego son expuestos por el `AnalyticsController`.
-         */
 
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
@@ -46,6 +44,10 @@ public class AnalyticsService {
     private final KpiSnapshotRepository kpiSnapshotRepository;
     private final CampaignRepository campaignRepository;
     private final MarketingInteractionRepository interactionRepository;
+    private final KpiSnapshotMapper kpiSnapshotMapper;
+
+    private static final Set<String> ESTADOS_EN_CURSO =
+            Set.of("in progress", "active", "en progreso", "activo", "en curso");
 
     public AnalyticsService(
             ClientRepository clientRepository,
@@ -55,7 +57,8 @@ public class AnalyticsService {
             ProjectRepository projectRepository,
             KpiSnapshotRepository kpiSnapshotRepository,
             CampaignRepository campaignRepository,
-            MarketingInteractionRepository interactionRepository) {
+            MarketingInteractionRepository interactionRepository,
+            KpiSnapshotMapper kpiSnapshotMapper) {
         this.clientRepository = clientRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
@@ -64,14 +67,10 @@ public class AnalyticsService {
         this.kpiSnapshotRepository = kpiSnapshotRepository;
         this.campaignRepository = campaignRepository;
         this.interactionRepository = interactionRepository;
+        this.kpiSnapshotMapper = kpiSnapshotMapper;
     }
 
     public AnalyticsSummaryDto getSummary() {
-                /**
-                 * Construye un `AnalyticsSummaryDto` con métricas agregadas.
-                 * - suma total del inventario
-                 * - conteos de entidades principales
-                 */
         List<Inventory> allInventory = inventoryRepository.findAll();
         long totalStock = allInventory.stream()
                 .mapToLong(inv -> inv.getTotalStock() != null ? inv.getTotalStock() : 0)
@@ -87,7 +86,7 @@ public class AnalyticsService {
                 .totalCampaigns(campaignRepository.count())
                 .activeCampaigns(campaignRepository.findByStatus(Campaign.CampaignStatus.Active).size())
                 .totalProjects(projectRepository.count())
-                .projectsInProgress(projectRepository.countByStatus("In Progress"))
+                .projectsInProgress(projectRepository.countByStatusIn(ESTADOS_EN_CURSO))
                 .totalProducts(productRepository.count())
                 .totalInventoryItems(inventoryRepository.count())
                 .totalStock(totalStock)
@@ -98,9 +97,6 @@ public class AnalyticsService {
     }
 
     public List<ClientPlanDistributionDto> getClientPlanDistribution() {
-                /**
-                 * Devuelve conteos de clientes por cada plan disponible.
-                 */
         List<ClientPlanDistributionDto> distribution = new ArrayList<>();
         for (Client.Plan plan : Client.Plan.values()) {
             distribution.add(ClientPlanDistributionDto.builder()
@@ -112,10 +108,6 @@ public class AnalyticsService {
     }
 
     public List<ClientActivityDto> getClientActivities() {
-                /**
-                 * Construye una lista con la actividad por cliente.
-                 * Para cada cliente devuelve el número de campañas y proyectos.
-                 */
         return clientRepository.findAll().stream()
                 .map(client -> {
                     long campaignCount = campaignRepository.findByClientId(client.getClientId()).size();
@@ -130,12 +122,21 @@ public class AnalyticsService {
                 .collect(Collectors.toList());
     }
 
-    public List<CampaignStatusReportDto> getCampaignStatusReport() {
-                /**
-                 * Agrupa las campañas por estado y devuelve un DTO con los conteos.
-                 */
-        Map<String, Long> statusCounts = campaignRepository.findAll().stream()
-                .collect(Collectors.groupingBy(campaign -> campaign.getStatus() != null ? campaign.getStatus().name() : "Unknown",
+    /**
+     * Agrupa las campanas por estado.
+     */
+    public List<CampaignStatusReportDto> getCampaignStatusReport(LocalDate from,
+                                                                 LocalDate to,
+                                                                 String clientId) {
+        List<Campaign> campaigns = campaignRepository.findAll().stream()
+                .filter(c -> clientId == null || clientId.equals(c.getClientId()))
+                .filter(c -> from == null || (c.getStartDate() != null && !c.getStartDate().isBefore(from)))
+                .filter(c -> to == null || (c.getStartDate() != null && !c.getStartDate().isAfter(to)))
+                .toList();
+
+        Map<String, Long> statusCounts = campaigns.stream()
+                .collect(Collectors.groupingBy(
+                        campaign -> campaign.getStatus() != null ? campaign.getStatus().name() : "Unknown",
                         Collectors.counting()));
 
         return statusCounts.entrySet().stream()
@@ -146,11 +147,12 @@ public class AnalyticsService {
                 .collect(Collectors.toList());
     }
 
+    /** Se conserva la firma sin filtros por compatibilidad. */
+    public List<CampaignStatusReportDto> getCampaignStatusReport() {
+        return getCampaignStatusReport(null, null, null);
+    }
+
     public List<InventoryAlertDto> getLowStockAlerts() {
-                /**
-                 * Busca en `INVENTORY` los items con `total_stock <= low_stock_alert`
-                 * y devuelve un DTO con información adicional del producto.
-                 */
         List<Inventory> allInventory = inventoryRepository.findAll();
         List<Integer> productIds = allInventory.stream()
                 .filter(inv -> inv.getProductId() != null)
@@ -178,32 +180,23 @@ public class AnalyticsService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Historial completo de snapshots, del mas reciente al mas antiguo.
+     */
     public List<KpiSnapshotDto> getKpiSnapshots() {
-        /**
-         * Devuelve los snapshots de KPI ordenados por fecha de cálculo.
-         */
-        return kpiSnapshotRepository.findAllByOrderByCalculatedAtDesc().stream()
-                .map(this::toDto)
-                .collect(Collectors.toList());
+        return kpiSnapshotMapper.toDtoList(
+                kpiSnapshotRepository.findAllByOrderByCalculatedAtDesc());
     }
 
-    private KpiSnapshotDto toDto(KpiSnapshot snapshot) {
-        /**
-         * Convierte la entidad `KpiSnapshot` a su DTO equivalente.
-         */
-        return KpiSnapshotDto.builder()
-                .snapshotsId(snapshot.getSnapshotsId())
-                .period(snapshot.getPeriod())
-                .calculatedAt(snapshot.getCalculatedAt())
-                .newClients(snapshot.getNewClients())
-                .closedProjects(snapshot.getClosedProjects())
-                .estimatedRevenue(snapshot.getEstimatedRevenue())
-                .activeCampaigns(snapshot.getActiveCampaigns())
-                .clientsContacted(snapshot.getClientsContacted())
-                .responseRate(snapshot.getResponseRate())
-                .avgCloseDays(snapshot.getAvgCloseDays())
-                .projectsInProgress(snapshot.getProjectsInProgress())
-                .calculatedBy(snapshot.getCalculatedBy())
-                .build();
+    public KpiSnapshotDto getKpiSnapshotByPeriod(String period) {
+        return kpiSnapshotRepository.findByPeriod(period)
+                .map(kpiSnapshotMapper::toDto)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No hay indicadores almacenados para el periodo " + period));
+    }
+
+    public List<KpiSnapshotDto> getKpiHistory(String from, String to) {
+        return kpiSnapshotMapper.toDtoList(
+                kpiSnapshotRepository.findByPeriodBetweenOrderByPeriodAsc(from, to));
     }
 }

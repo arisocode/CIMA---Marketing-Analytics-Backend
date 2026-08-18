@@ -63,4 +63,16 @@ public class CrmIntegrationService {
         if (client.containsKey("email")) return (String) client.get("email");
         return "Cliente desconocido";
     }
+
+    public String extractClientEmail(Map<String, Object> client) {
+        if (client == null) return null;
+        Object email = client.get("email");
+        if (email == null) email = client.get("contact_info");
+        if (email == null) email = client.get("contactInfo");
+        if (email == null) email = client.get("correo");
+        if (email instanceof String value && value.contains("@")) {
+            return value.trim();
+        }
+        return email != null ? email.toString() : null;
+    }
 }
