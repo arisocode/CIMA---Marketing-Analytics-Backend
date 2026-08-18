@@ -34,6 +34,7 @@ public class AnalyticsController {
     @GetMapping("/summary")
     public ResponseEntity<AnalyticsSummaryDto> getSummary() {
         // Resumen agregado del sistema
+        System.out.println("summarysummarysummary\n"+analyticsService.getSummary().getTotalClients());
         return ResponseEntity.ok(analyticsService.getSummary());
     }
 

@@ -73,6 +73,7 @@ public class AnalyticsService {
                  * - conteos de entidades principales
                  */
         List<Inventory> allInventory = inventoryRepository.findAll();
+        System.out.println("get summary imprimiendo allInventory:\n"+allInventory);
         long totalStock = allInventory.stream()
                 .mapToLong(inv -> inv.getTotalStock() != null ? inv.getTotalStock() : 0)
                 .sum();
