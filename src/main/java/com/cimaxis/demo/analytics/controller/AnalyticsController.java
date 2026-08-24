@@ -86,6 +86,11 @@ public class AnalyticsController {
         return ResponseEntity.ok(kpiCalculationService.calculate(period));
     }
 
+    @GetMapping("/kpis/current/{period}")
+    public ResponseEntity<KpiSnapshotDto> getCurrentKpisByPath(@PathVariable String period) {
+        return ResponseEntity.ok(kpiCalculationService.calculate(period));
+    }
+
     /** KPIs de un periodo especifico ya almacenado. */
     @GetMapping("/kpis/period/{period}")
     public ResponseEntity<KpiSnapshotDto> getKpisByPeriod(@PathVariable String period) {
@@ -104,6 +109,14 @@ public class AnalyticsController {
     @PreAuthorize("hasAnyRole('admin','worker')")
     public ResponseEntity<KpiSnapshotDto> calculateKpis(@RequestParam(required = false) String period,
                                                         HttpServletRequest request) {
+        String userId = (String) request.getAttribute("userId");
+        return ResponseEntity.ok(kpiCalculationService.calculateAndStore(period, userId));
+    }
+
+    @PostMapping("/kpis/calculate/{period}")
+    @PreAuthorize("hasAnyRole('admin','worker')")
+    public ResponseEntity<KpiSnapshotDto> calculateKpisByPath(@PathVariable String period,
+                                                              HttpServletRequest request) {
         String userId = (String) request.getAttribute("userId");
         return ResponseEntity.ok(kpiCalculationService.calculateAndStore(period, userId));
     }

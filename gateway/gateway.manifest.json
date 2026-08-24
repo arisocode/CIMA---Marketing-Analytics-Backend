@@ -376,6 +376,18 @@
       "method": "GET",
       "backend_url": "/api/v1/analytics/export/low-stock",
       "openapi_ref": "GET /api/analytics/export/low-stock"
+    },
+    {
+      "endpoint": "/api/v1/analytics/kpis/current/{period}",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/kpis/current/{period}",
+      "openapi_ref": "GET /api/analytics/kpis/current/{period}"
+    },
+    {
+      "endpoint": "/api/v1/analytics/kpis/calculate/{period}",
+      "method": "POST",
+      "backend_url": "/api/v1/analytics/kpis/calculate/{period}",
+      "openapi_ref": "POST /api/analytics/kpis/calculate/{period}"
     }
   ]
 }
