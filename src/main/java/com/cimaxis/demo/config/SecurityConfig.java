@@ -8,6 +8,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.http.HttpStatus;
 
 import com.cimaxis.demo.security.JwtAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -34,9 +36,24 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // A missing or invalid gateway identity must be distinguishable from
+            // an authenticated identity without the required business role.
+            // REST consumers can then reauthenticate on 401 and surface a proper
+            // authorization error on 403.
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/_gateway/**").permitAll()
+                // Marketing and analytics expose commercial and cross-client data.
+                // They are operational back-office capabilities, not client-facing
+                // resources; enforce this policy at the service boundary as well
+                // as in the UI.
+                .requestMatchers(
+                    "/api/v1/marketing/**",
+                    "/api/v1/analytics/**",
+                    "/api/v1/integration/**"
+                ).hasAnyRole("admin", "worker")
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
