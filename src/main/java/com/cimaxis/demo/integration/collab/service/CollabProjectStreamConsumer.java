@@ -16,8 +16,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Consumidor manual: sólo confirma Redis después de persistir la proyección.
@@ -29,21 +29,21 @@ public class CollabProjectStreamConsumer {
     private static final Logger log = LoggerFactory.getLogger(CollabProjectStreamConsumer.class);
 
     private final StringRedisTemplate redis;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final ProjectProjectionService projectionService;
     private final String stream;
     private final String group;
     private final String consumer;
     private final int batchSize;
 
-    public CollabProjectStreamConsumer(StringRedisTemplate redis, ObjectMapper objectMapper,
+    public CollabProjectStreamConsumer(StringRedisTemplate redis, JsonMapper jsonMapper,
             ProjectProjectionService projectionService,
             @Value("${cimaxis.collab-projection.stream}") String stream,
             @Value("${cimaxis.collab-projection.consumer-group}") String group,
             @Value("${cimaxis.collab-projection.consumer-name}") String consumer,
             @Value("${cimaxis.collab-projection.batch-size}") int batchSize) {
         this.redis = redis;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
         this.projectionService = projectionService;
         this.stream = stream;
         this.group = group;
@@ -60,7 +60,7 @@ public class CollabProjectStreamConsumer {
         if (messages == null) return;
         for (MapRecord<String, Object, Object> message : messages) {
             try {
-                JsonNode event = objectMapper.readTree(String.valueOf(message.getValue().get("payload")));
+                JsonNode event = jsonMapper.readTree(String.valueOf(message.getValue().get("payload")));
                 String type = event.path("type").asText();
                 if ("project.created".equals(type) || "project.updated".equals(type)) {
                     projectionService.apply(event);

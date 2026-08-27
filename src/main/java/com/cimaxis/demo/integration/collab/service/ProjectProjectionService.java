@@ -10,7 +10,7 @@ import com.cimaxis.demo.analytics.domain.Project;
 import com.cimaxis.demo.analytics.repository.ProjectRepository;
 import com.cimaxis.demo.integration.collab.domain.ProcessedCollabEvent;
 import com.cimaxis.demo.integration.collab.repository.ProcessedCollabEventRepository;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 /** Aplica una instantánea de proyecto en la base de Marketing de forma idempotente. */
 @Service
