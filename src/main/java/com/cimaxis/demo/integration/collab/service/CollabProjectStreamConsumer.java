@@ -1,6 +1,7 @@
 package com.cimaxis.demo.integration.collab.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,10 +76,24 @@ public class CollabProjectStreamConsumer {
     private void ensureConsumerGroup() {
         try {
             redis.opsForStream().createGroup(stream, ReadOffset.from("0-0"), group);
-        } catch (DataAccessException error) {
-            if (error.getMessage() == null || !error.getMessage().contains("BUSYGROUP")) {
-                throw error;
+        } catch (DataAccessException firstError) {
+            if (hasRedisCode(firstError, "BUSYGROUP")) return;
+            if (!hasRedisCode(firstError, "requires the key to exist")) throw firstError;
+
+            redis.opsForStream().add(stream, Map.of("__bootstrap__", "1"));
+            try {
+                redis.opsForStream().createGroup(stream, ReadOffset.from("0-0"), group);
+            } catch (DataAccessException retryError) {
+                if (!hasRedisCode(retryError, "BUSYGROUP")) throw retryError;
             }
         }
+    }
+
+    private static boolean hasRedisCode(Throwable error, String code) {
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            String message = current.getMessage();
+            if (message != null && message.contains(code)) return true;
+        }
+        return false;
     }
 }
