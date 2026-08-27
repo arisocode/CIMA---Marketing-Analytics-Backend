@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.cimaxis.demo.integration.crm.service.CrmIntegrationService;
@@ -19,6 +20,9 @@ public class NotificationDispatcher {
 
     private final EmailService emailService;
     private final CrmIntegrationService crmIntegrationService;
+
+    @Value("${cimaxis.notifications.admin-recipient:}")
+    private String adminRecipient;
 
     public NotificationDispatcher(EmailService emailService,
                                   CrmIntegrationService crmIntegrationService) {
@@ -47,9 +51,18 @@ public class NotificationDispatcher {
             }
 
             case notify_admin -> {
-                log.warn("Notificacion para administracion desde workflow {}: {}",
-                        workflow.getWorkflowName(), message);
-                yield DispatchResult.ok("admin_notification", "Notificacion generada para el administrador");
+                if (adminRecipient == null || adminRecipient.isBlank()) {
+                    log.error("No se entrego la alerta administrativa del workflow {}: falta configurar ADMIN_NOTIFICATION_RECIPIENT",
+                            workflow.getWorkflowName());
+                    yield DispatchResult.failed("admin_notification",
+                            "No hay destinatario administrativo configurado");
+                }
+
+                DispatchResult emailResult = emailService.send(
+                        adminRecipient.trim(),
+                        "Alerta administrativa: " + workflow.getWorkflowName(),
+                        message);
+                yield new DispatchResult("admin_notification", emailResult.delivered(), emailResult.detail());
             }
         };
     }
