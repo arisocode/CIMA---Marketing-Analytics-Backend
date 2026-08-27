@@ -47,7 +47,15 @@ public class AnalyticsService {
     private final KpiSnapshotMapper kpiSnapshotMapper;
 
     private static final Set<String> ESTADOS_EN_CURSO =
-            Set.of("in progress", "active", "en progreso", "activo", "en curso");
+            Set.of(
+                    "in_progress",
+                    "in_review",
+                    "in progress",
+                    "active",
+                    "en progreso",
+                    "activo",
+                    "en curso"
+            );
 
     public AnalyticsService(
             ClientRepository clientRepository,
