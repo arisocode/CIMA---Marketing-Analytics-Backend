@@ -1,87 +1,71 @@
 package com.cimaxis.demo.marketing.controller.campaigns;
 
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
-import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
-
-import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.cimaxis.demo.marketing.dto.campaigns.CampaignRequest;
+import com.cimaxis.demo.marketing.dto.campaigns.CampaignResponse;
+import com.cimaxis.demo.marketing.service.campaigns.CampaignService;
+
+/**
+ * Endpoints de campanas de marketing.
+ */
 @RestController
 @RequestMapping("/api/v1/marketing/campaigns")
+@RequiredArgsConstructor
+
 public class CampaignController {
 
-    private final CampaignRepository campaignRepository;
+    private final CampaignService campaignService;
 
-    public CampaignController(CampaignRepository campaignRepository) {
-        this.campaignRepository = campaignRepository;
-    }
-
-    // Obtengo todas las campañas
     @GetMapping
-    public ResponseEntity<List<Campaign>> getAll() {
-        return ResponseEntity.ok(campaignRepository.findAll());
+    public ResponseEntity<List<CampaignResponse>> getAll() {
+        return ResponseEntity.ok(campaignService.findAll());
     }
 
-    // Obtengo campaña por ID
     @GetMapping("/{id}")
-    public ResponseEntity<Campaign> getById(@PathVariable Integer id) {
-        return campaignRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CampaignResponse> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(campaignService.findById(id));
     }
 
-    // Obtengo campañas por cliente
     @GetMapping("/client/{clientId}")
-    public ResponseEntity<List<Campaign>> getByClient(@PathVariable String clientId) {
-        return ResponseEntity.ok(campaignRepository.findByClientId(clientId));
+    public ResponseEntity<List<CampaignResponse>> getByClient(@PathVariable String clientId) {
+        return ResponseEntity.ok(campaignService.findByClient(clientId));
     }
 
-    // Para crear campaña
     @PostMapping
-    public ResponseEntity<Campaign> create(@RequestBody Campaign campaign,
-                                            HttpServletRequest request) {
-
-        System.out.println("Creando campaña: " + campaign.getCampaignName() + " para cliente ID: " + campaign.getClientId());
-        // Tomar el userId del contexto de seguridad
-        String userId = (String) request.getAttribute("userId");
-        if (userId != null) campaign.setCreatedBy(userId);
-
-        campaign.setCreatedAt(LocalDateTime.now());
-        campaign.setUpdatedAt(LocalDateTime.now());
-        if (campaign.getStatus() == null) {
-            campaign.setStatus(Campaign.CampaignStatus.Draft);
-        }
-        return ResponseEntity.ok(campaignRepository.save(campaign));
+    @PreAuthorize("hasAnyRole('admin','worker')")
+    public ResponseEntity<CampaignResponse> create(@RequestBody CampaignRequest request,
+                                                   HttpServletRequest servletRequest) {
+        String userId = (String) servletRequest.getAttribute("userId");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(campaignService.create(request, userId));
     }
 
-    // Actualizar campaña
     @PutMapping("/{id}")
-    public ResponseEntity<Campaign> update(@PathVariable Integer id,
-                                            @RequestBody Campaign updated) {
-        return campaignRepository.findById(id).map(existing -> {
-            existing.setCampaignName(updated.getCampaignName());
-            existing.setCampaignType(updated.getCampaignType());
-            existing.setStatus(updated.getStatus());
-            existing.setStartDate(updated.getStartDate());
-            existing.setEndDate(updated.getEndDate());
-            existing.setPlatforms(updated.getPlatforms());
-            existing.setObjective(updated.getObjective());
-            existing.setUpdatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(campaignRepository.save(existing));
-        }).orElse(ResponseEntity.notFound().build());
+    @PreAuthorize("hasAnyRole('admin','worker')")
+    public ResponseEntity<CampaignResponse> update(@PathVariable Integer id,
+                                                   @RequestBody CampaignRequest request) {
+        return ResponseEntity.ok(campaignService.update(id, request));
     }
 
-    // Eliminar campaña
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('admin')")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
-        if (!campaignRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        campaignRepository.deleteById(id);
+        campaignService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

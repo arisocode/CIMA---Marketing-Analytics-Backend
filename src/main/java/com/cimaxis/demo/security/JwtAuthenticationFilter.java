@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 /**
  * Filtro de autenticación para el ecosistema CIMA.
- * Confía exclusivamente en las cabeceras validadas y propagadas por el API Gateway (KrakenD).
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

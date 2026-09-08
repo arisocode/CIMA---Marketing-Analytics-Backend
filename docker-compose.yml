@@ -16,6 +16,7 @@ services:
       DATABASE_USER: marketing_user
       DATABASE_PASSWORD: ${MARKETING_DB_PASSWORD:-marketingpassword}
       CRM_BASE_URL: http://api-gateway:8080
+      REDIS_URL: redis://redis:6379
     depends_on:
       postgres_db:
         condition: service_healthy
