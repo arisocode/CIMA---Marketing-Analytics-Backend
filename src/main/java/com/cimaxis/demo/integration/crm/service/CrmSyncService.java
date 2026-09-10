@@ -177,7 +177,10 @@ public class CrmSyncService {
         int procesados = 0;
         for (Map<String, Object> remoto : remotos) {
             String projectId = primerValor(remoto, "id", "project_id", "projectId");
-            String clientId = primerValor(remoto, "client_id", "clientId");
+            // schema_collab.projects usa "client_sub" (el subject del cliente en
+            // el CRM), no "client_id"/"clientId". Se aceptan ambas formas por si
+            // Collab cambia la convención de nombres en su respuesta.
+            String clientId = primerValor(remoto, "client_id", "clientId", "client_sub", "clientSub");
 
             // Sin cliente asociado el proyecto no sirve para los indicadores y
             // ademas violaria la restriccion NOT NULL del modelo.
