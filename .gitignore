@@ -65,17 +65,13 @@ build/
 # OTROS ÚTILES
 # ========================
 
-.env
-*.yml
-*.properties
+.env*
+!.env.example
+!.env.production.example
 application-local.properties
-
-!docker-compose.yml
-
-# GitHub Actions workflows must be versioned even though other YAML files are local-only.
-!.github/
-!.github/workflows/
-!.github/workflows/*.yml
+application-*.local.properties
+*.pem
+*.key
 
 # Maven Wrapper metadata is required for ./mvnw in CI.
 !.mvn/
