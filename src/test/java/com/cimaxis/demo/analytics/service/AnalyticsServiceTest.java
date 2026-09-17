@@ -24,7 +24,6 @@ import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRe
 
 class AnalyticsServiceTest {
 
-    // ci: verificacion de integracion y despliegue continuo v2.5.0
     @Test
     void incluirEstadosCanonicosDeColaboracionEnProyectosEnCurso() {
         ClientRepository clients = mock(ClientRepository.class);
