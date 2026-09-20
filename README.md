@@ -1,154 +1,76 @@
-# CIMA Marketing Analytics Backend
+# CRM Marketing Service
 
-Microservicio Java Spring Boot para los modulos de Marketing, Analytics y Reportes de CIMA.
+> Microservicio Java Spring Boot para Marketing, Analítica de Clientes y Reportes en CIMA CRM.
 
-Este repositorio pertenece al equipo de marketing, pero esta integrado al flujo de plataforma CIMA mediante:
+[![Status](https://img.shields.io/badge/status-active-success.svg)]()
+[![Platform](https://img.shields.io/badge/platform-CIMA%20CRM-blue.svg)]()
+[![Java](https://img.shields.io/badge/java-21%20LTS-orange.svg)]()
+[![Spring Boot](https://img.shields.io/badge/spring--boot-3%2F4-brightgreen.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-- API Gateway central con KrakenD.
-- Base de datos PostgreSQL central con esquema dedicado `schema_marketing`.
-- CI reusable de `SebasCarvajal11/crm-infra`.
-- Smoke tests full-stack desde `crm-infra`.
-- Frontend central `crm-frontend`, que consume los endpoints publicados por el Gateway.
+---
 
-## Requisitos
+## Propósito
 
-- JDK 21.
-- Docker Desktop o Docker Engine.
-- Git.
-- No se requiere Maven global; usar siempre `./mvnw` o `mvnw.cmd`.
+`crm-marketing` administra las campañas publicitarias, propuestas comerciales, segmentación de audiencias, cálculo y consolidación periódica de métricas de rendimiento (KPIs) y automatización de flujos de trabajo de seguimiento comercial (*workflows*). Se conecta a PostgreSQL bajo el esquema aislado `schema_marketing` y expone sus contratos a través del API Gateway KrakenD.
 
-## Configuracion local
+---
 
-1. Copiar el archivo de entorno:
+## Documentación Detallada (`docs/`)
 
-   ```bash
-   cp .env.example .env
-   ```
+Para consultar las especificaciones técnicas completas y guías de arquitectura, visita la suite documental:
 
-2. Levantar la infraestructura central desde `crm-infra` cuando se quiera ejecutar el servicio conectado al stack:
+- [**Arquitectura del Sistema (`docs/ARCHITECTURE.md`)**](./docs/ARCHITECTURE.md): Diseño en capas Spring Boot, paquetes `marketing` y `analytics`.
+- [**Modelo de Dominio (`docs/DOMAIN.md`)**](./docs/DOMAIN.md): Campañas, propuestas, audiencias, snapshots de KPIs y flujos de trabajo.
+- [**Contratos de API (`docs/API.md`)**](./docs/API.md): Endpoints públicos en KrakenD (`/api/v1/marketing/*`, `/api/v1/analytics/*`).
+- [**Base de Datos y Persistencia (`docs/DATABASE.md`)**](./docs/DATABASE.md): Esquema PostgreSQL `schema_marketing`, entidades JPA y proyecciones.
+- [**Seguridad y Control de Acceso (`docs/SECURITY.md`)**](./docs/SECURITY.md): Modelo de confianza perimetral, `JwtAuthenticationFilter` y roles.
+- [**Integraciones y Plataforma (`docs/INTEGRATIONS.md`)**](./docs/INTEGRATIONS.md): KrakenD Gateway, sincronización de clientes y correo vía `crm-media`.
+- [**Estrategia de Pruebas (`docs/TESTING.md`)**](./docs/TESTING.md): Pruebas JUnit 5, Mockito, Testcontainers y comandos con `./mvnw`.
+- [**Decisiones Arquitectónicas (`docs/DECISIONS/`)**](./docs/DECISIONS/README.md): Registros formales de decisiones (ADRs).
 
-   ```bash
-   docker compose up -d postgres_db redis api-gateway
-   ```
+---
 
-3. Ejecutar el servicio:
+## Inicio Rápido Local
 
-   En Linux/macOS:
-
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-
-   En Windows:
-
-   ```powershell
-   .\mvnw.cmd spring-boot:run
-   ```
-
-El servicio corre por defecto en `http://localhost:3003`.
-
-## Configuracion de produccion
-
-El despliegue central espera `crm-marketing/.env.production` en el servidor. Crear ese archivo desde `.env.production.example` y reemplazar `DATABASE_PASSWORD=change-me` por el mismo valor configurado como `MARKETING_DB_PASSWORD` en `crm-infra/.env.production`.
-
-Los valores productivos esperados para base de datos son:
-
-```env
-DATABASE_HOST=postgres_db
-DATABASE_PORT=5432
-DATABASE_NAME=crm_database
-DB_SCHEMA=schema_marketing
-DATABASE_USER=marketing_user
-```
-
-El script remoto de despliegue valida que `MARKETING_DB_PASSWORD` y `DATABASE_PASSWORD` existan, no sean placeholders y coincidan antes de levantar el stack.
-
-## Pruebas y build
-
-Los tests usan Testcontainers con PostgreSQL 16. Por eso no necesitan una base local previa, pero si requieren Docker activo.
-
-En Linux/macOS:
-
+### 1. Configuración de Entorno
 ```bash
-./mvnw test
-./mvnw -DskipTests package
-docker build -t crm-marketing:local .
+cp .env.example .env
+# Configurar contraseñas locales o ejecutar pnpm setup:env desde crm-infra
 ```
 
-En Windows:
+### 2. Ejecutar la Aplicación
+En Windows (PowerShell / CMD):
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+En Linux / macOS:
+```bash
+./mvnw spring-boot:run
+```
+
+El servicio inicia por defecto en `http://localhost:3003`.
+
+---
+
+## Pruebas y Validación de Calidad
 
 ```powershell
+# Ejecutar todas las pruebas con Testcontainers PostgreSQL
 .\mvnw.cmd test
+
+# Compilar el paquete JAR omitiendo tests
 .\mvnw.cmd -DskipTests package
-docker build -t crm-marketing:local .
 ```
 
-## Contrato de integracion CIMA
+---
 
-- Todas las rutas publicas deben vivir bajo `/api/v1/...`.
-- El backend no debe validar JWT directamente. El Gateway valida el token y propaga identidad mediante headers confiables.
-- El servicio lee el usuario desde `X-User-Sub` y el rol desde `X-User-Role`.
-- Los IDs externos que vienen de otros modulos del CRM deben modelarse como `String`.
-- La conexion a base de datos debe mantenerse dentro de `schema_marketing`.
-- Los clientes HTTP internos deben usar `CRM_BASE_URL` y pasar por el API Gateway.
+## Despliegue en Producción
 
-## Gateway
+El despliegue está automatizado mediante GitHub Actions y orquestado por el script canónico de slots Blue/Green:
 
-Cuando se agregue, cambie o elimine un endpoint publico:
-
-1. Crear o actualizar el controlador Spring Boot.
-2. Actualizar `gateway/gateway.manifest.json`.
-3. Verificar que el endpoint publico y el `backend_url` coincidan con la ruta real.
-4. Ejecutar `./mvnw test`.
-5. Abrir PR y esperar CI verde.
-
-El manifest tambien se publica en runtime en:
-
-```text
-GET /api/v1/_gateway/gateway.manifest.json
+```bash
+# Desde crm-infra/
+./deploy/remote/deploy-component.sh marketing
 ```
-
-Ese endpoint no requiere JWT para que `crm-infra` pueda generar configuracion del Gateway en CI y en despliegue.
-
-## CI/CD
-
-El workflow local `.github/workflows/ci.yml` invoca el reusable central:
-
-```text
-SebasCarvajal11/crm-infra/.github/workflows/reusable-ci.yml@v2.2.1
-```
-
-En cada push o pull request se valida:
-
-- escaneo de secretos;
-- build Maven;
-- tests Maven;
-- manifest de Gateway;
-- OpenAPI cuando aplique;
-- build de imagen Docker;
-- escaneo Trivy;
-- SBOM.
-
-El CI central de `crm-infra` tambien clona este repositorio y valida el stack completo con smoke tests.
-
-## Flujo de trabajo esperado
-
-1. Crear una rama desde `main`.
-2. Hacer cambios pequenos y enfocados.
-3. Mantener actualizado `gateway/gateway.manifest.json` si cambia la API publica.
-4. Ejecutar `./mvnw test` antes de abrir PR.
-5. Abrir PR usando la plantilla del repositorio.
-6. Esperar CI verde antes de mergear.
-
-`main` debe protegerse desde GitHub con permisos de administrador para requerir PR y status checks antes de merge. Esta configuracion no vive en el codigo del repositorio.
-
-## Migraciones de base de datos
-
-Por ahora el servicio usa `spring.jpa.hibernate.ddl-auto=update` porque el modelo de datos aun esta en evolucion temprana.
-
-Antes de produccion estable se debe migrar a Flyway o equivalente:
-
-- crear migracion inicial;
-- cambiar Hibernate a `ddl-auto=validate`;
-- versionar cada cambio de esquema en PR;
-- validar el flujo completo en CI central.
