@@ -71,7 +71,7 @@ Desde `crm-infra`:
 ```bash
 cd crm-infra
 cp .env.example .env
-docker compose -f docker-compose.marketing-local.yml up -d postgres_db redis api-gateway
+docker compose up -d postgres_db redis api-gateway
 ```
 
 En Windows PowerShell:
@@ -79,7 +79,7 @@ En Windows PowerShell:
 ```powershell
 cd crm-infra
 Copy-Item .env.example .env
-docker compose -f docker-compose.marketing-local.yml up -d postgres_db redis api-gateway
+docker compose up -d postgres_db redis api-gateway
 ```
 
 Despues de copiar `.env.example`, dejar estas variables asi para este flujo:
@@ -93,7 +93,7 @@ AUTH_DB_PASSWORD=authpassword
 MARKETING_DB_PASSWORD=marketingpassword
 ```
 
-Usar `docker-compose.marketing-local.yml` es importante: ese archivo levanta solo Postgres, Redis y el gateway necesario para Auth + Marketing. No requiere tener clonados `crm-collab` ni `crm-media`.
+Usar `docker-compose.yml` permite levantar solo Postgres, Redis y el gateway necesario para Auth + Marketing.
 
 Esto deja disponible:
 
