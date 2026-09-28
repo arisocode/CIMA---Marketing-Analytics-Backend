@@ -4,11 +4,13 @@ Este documento cataloga los endpoints expuestos a través del API Gateway Kraken
 
 ---
 
-## 1. Contrato de Entrada del Gateway
+## 1. Contrato de Entrada del Gateway y Seguridad Perimetral
 
-Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:28080`). El microservicio confía en las cabeceras de identidad inyectadas por el Gateway:
-- `X-User-Sub`: Identificador UUID del usuario autenticado.
-- `X-User-Role`: Rol canónico CIMA (`admin`, `worker`, `client`).
+Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:28080`). Conforme a **ADR-003**:
+- El microservicio valida la cabecera compartida `X-Gateway-Secret` o la firma JWT portadora (`Authorization: Bearer <token>`).
+- KrakenD propaga e inyecta la identidad verificada:
+  - `X-User-Sub`: Identificador UUID del usuario autenticado.
+  - `X-User-Role`: Rol canónico CIMA (`admin`, `worker`, `client`).
 
 ---
 
