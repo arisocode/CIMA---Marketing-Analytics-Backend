@@ -56,7 +56,8 @@ public class KpiCalculationService {
     private static final Set<String> ESTADOS_CERRADO =
             Set.of("completed", "closed", "finalizado", "completado", "cerrado");
     private static final Set<String> ESTADOS_EN_CURSO =
-            Set.of("in progress", "active", "en progreso", "activo", "en curso");
+            Set.of("in_progress", "in_review", "in progress", "active",
+                    "en progreso", "activo", "en curso");
 
     /** Tipos de interaccion que se cuentan como respuesta del cliente. */
     private static final List<MarketingInteraction.InteractionType> TIPOS_RESPUESTA = List.of(
