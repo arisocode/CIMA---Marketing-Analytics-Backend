@@ -257,6 +257,9 @@ public class WorkflowExecutionService {
             return "Seguimiento automatico - " + workflow.getWorkflowName();
         }
         String nombre = crmIntegrationService.extractClientName(client);
+        if (nombre == null || nombre.isBlank()) {
+            nombre = "Cliente";
+        }
         return template.replace("{nombre}", nombre)
                 .replace("{workflow}", workflow.getWorkflowName());
     }

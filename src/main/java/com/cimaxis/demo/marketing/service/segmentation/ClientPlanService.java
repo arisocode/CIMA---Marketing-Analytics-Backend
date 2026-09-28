@@ -87,6 +87,7 @@ public class ClientPlanService {
             }
         }
         throw new IllegalArgumentException(
-                "Plan invalido: " + valor + ". Valores permitidos: Oro, Esmeralda, Premium");
+                "Plan invalido: " + valor + ". Valores permitidos: "
+                        + java.util.Arrays.toString(Client.Plan.values()));
     }
 }

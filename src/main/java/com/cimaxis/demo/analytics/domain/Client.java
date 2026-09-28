@@ -57,6 +57,6 @@ public class Client {
     private LocalDateTime updatedAt;
 
     public enum Plan {
-        Oro, Esmeralda, Premium
+        Platinum, Oro, Diamante
     }
 }
