@@ -1,5 +1,6 @@
 package com.cimaxis.demo.integration.collab.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -8,9 +9,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.PendingMessages;
 import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -21,8 +25,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Consumidor manual: sólo confirma Redis después de persistir la proyección.
- * Si falla, el mensaje queda pendiente para reintento, sin perder eventos.
+ * Consumidor resiliente de eventos de Collab con reintentos PEL y DLQ (ADR-005).
  */
 @Component
 @ConditionalOnProperty(name = "cimaxis.collab-projection.enabled", havingValue = "true")
@@ -33,49 +36,134 @@ public class CollabProjectStreamConsumer {
     private final JsonMapper jsonMapper;
     private final ProjectProjectionService projectionService;
     private final String stream;
+    private final String dlqStream;
     private final String group;
     private final String consumer;
     private final int batchSize;
+    private final int maxRetries;
     private volatile boolean consumerGroupReady;
 
-    public CollabProjectStreamConsumer(StringRedisTemplate redis, JsonMapper jsonMapper,
+    public CollabProjectStreamConsumer(
+            StringRedisTemplate redis,
+            JsonMapper jsonMapper,
             ProjectProjectionService projectionService,
-            @Value("${cimaxis.collab-projection.stream}") String stream,
-            @Value("${cimaxis.collab-projection.consumer-group}") String group,
-            @Value("${cimaxis.collab-projection.consumer-name}") String consumer,
-            @Value("${cimaxis.collab-projection.batch-size}") int batchSize) {
+            @Value("${cimaxis.collab-projection.stream:stream:collab.events}") String stream,
+            @Value("${cimaxis.collab-projection.dlq-stream:stream:collab.events-dlq}") String dlqStream,
+            @Value("${cimaxis.collab-projection.consumer-group:group:marketing.collab-events}") String group,
+            @Value("${cimaxis.collab-projection.consumer-name:${HOSTNAME:marketing}-projects}") String consumer,
+            @Value("${cimaxis.collab-projection.batch-size:50}") int batchSize,
+            @Value("${cimaxis.collab-projection.max-retries:3}") int maxRetries) {
         this.redis = redis;
         this.jsonMapper = jsonMapper;
         this.projectionService = projectionService;
         this.stream = stream;
+        this.dlqStream = dlqStream;
         this.group = group;
         this.consumer = consumer;
         this.batchSize = batchSize;
+        this.maxRetries = maxRetries;
     }
 
-    @Scheduled(fixedDelayString = "${cimaxis.collab-projection.poll-delay-ms}")
+    @Scheduled(fixedDelayString = "${cimaxis.collab-projection.poll-delay-ms:1000}")
     public void consume() {
         try {
             ensureConsumerGroup();
-            List<MapRecord<String, Object, Object>> messages = redis.opsForStream().read(
-                    Consumer.from(group, consumer), StreamReadOptions.empty().count(batchSize),
-                    StreamOffset.create(stream, ReadOffset.lastConsumed()));
-            if (messages == null) return;
-            for (MapRecord<String, Object, Object> message : messages) {
-                try {
-                    JsonNode event = jsonMapper.readTree(String.valueOf(message.getValue().get("payload")));
-                    String type = event.path("type").asText();
-                    if ("project.created".equals(type) || "project.updated".equals(type)) {
-                        projectionService.apply(event);
-                    }
-                    redis.opsForStream().acknowledge(stream, group, message.getId());
-                } catch (Exception error) {
-                    log.error("No se pudo proyectar evento Collab {}: {}", message.getId(), error.getMessage(), error);
-                }
-            }
+            drainPendingMessages();
+            readNewMessages();
         } catch (DataAccessException error) {
             consumerGroupReady = false;
-            log.warn("El proyector de Collab no puede conectar a Redis; reintentara en el siguiente ciclo: {}", error.getMessage());
+            log.warn("El proyector no puede conectar a Redis; reintentara en siguiente ciclo: {}", error.getMessage());
+        }
+    }
+
+    private void drainPendingMessages() {
+        List<MapRecord<String, Object, Object>> pending = redis.opsForStream().read(
+                Consumer.from(group, consumer),
+                StreamReadOptions.empty().count(batchSize),
+                StreamOffset.create(stream, ReadOffset.from("0-0")));
+        if (pending != null && !pending.isEmpty()) {
+            for (MapRecord<String, Object, Object> message : pending) {
+                processMessage(message);
+            }
+        }
+    }
+
+    private void readNewMessages() {
+        List<MapRecord<String, Object, Object>> messages = redis.opsForStream().read(
+                Consumer.from(group, consumer),
+                StreamReadOptions.empty().count(batchSize),
+                StreamOffset.create(stream, ReadOffset.lastConsumed()));
+        if (messages != null && !messages.isEmpty()) {
+            for (MapRecord<String, Object, Object> message : messages) {
+                processMessage(message);
+            }
+        }
+    }
+
+    private void processMessage(MapRecord<String, Object, Object> message) {
+        try {
+            Object payloadObj = message.getValue().get("payload");
+            if (payloadObj == null) {
+                redis.opsForStream().acknowledge(stream, group, message.getId());
+                return;
+            }
+            JsonNode event = jsonMapper.readTree(String.valueOf(payloadObj));
+            String type = event.path("type").asText();
+            if ("project.created".equals(type) || "project.updated".equals(type)) {
+                projectionService.apply(event);
+            }
+            redis.opsForStream().acknowledge(stream, group, message.getId());
+        } catch (Exception error) {
+            handleFailure(message, error);
+        }
+    }
+
+    private void handleFailure(MapRecord<String, Object, Object> message, Exception error) {
+        long deliveryCount = getDeliveryCount(message.getId());
+        if (deliveryCount >= maxRetries) {
+            log.error("Evento Collab {} supero reintentos ({}/{}); desviando a DLQ {}",
+                    message.getId(), deliveryCount, maxRetries, dlqStream);
+            sendToDlq(message, deliveryCount, error);
+            redis.opsForStream().acknowledge(stream, group, message.getId());
+        } else {
+            log.warn("Fallo temporal en evento Collab {} (intento {}/{}): {}",
+                    message.getId(), deliveryCount, maxRetries, error.getMessage());
+        }
+    }
+
+    private long getDeliveryCount(RecordId recordId) {
+        try {
+            PendingMessages pending = redis.opsForStream().pending(
+                    stream,
+                    Consumer.from(group, consumer),
+                    Range.just(recordId.getValue()),
+                    1
+            );
+            if (pending != null && !pending.isEmpty()) {
+                return pending.get(0).getTotalDeliveryCount();
+            }
+        } catch (Exception e) {
+            log.debug("No se pudo consultar deliveryCount en Redis: {}", e.getMessage());
+        }
+        return 1;
+    }
+
+    private void sendToDlq(MapRecord<String, Object, Object> message, long deliveryCount, Exception error) {
+        try {
+            String errorMsg = error.getMessage() != null ? error.getMessage() : error.getClass().getSimpleName();
+            Map<String, Object> dlqEntry = Map.of(
+                "sourceStream", stream,
+                "sourceGroup", group,
+                "sourceMessageId", message.getId().getValue(),
+                "consumerId", consumer,
+                "failedAt", Instant.now().toString(),
+                "deliveryCount", String.valueOf(deliveryCount),
+                "errorMessage", errorMsg,
+                "payload", String.valueOf(message.getValue().getOrDefault("payload", ""))
+            );
+            redis.opsForStream().add(dlqStream, dlqEntry);
+        } catch (Exception dlqError) {
+            log.error("Fallo al publicar en DLQ {}: {}", dlqStream, dlqError.getMessage());
         }
     }
 

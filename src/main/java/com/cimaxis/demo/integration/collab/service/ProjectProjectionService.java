@@ -34,8 +34,13 @@ public class ProjectProjectionService {
 
         JsonNode data = event.path("data");
         String projectId = requiredText(data, "projectId");
-        String clientId = requiredText(data, "clientSub");
-        LocalDateTime updatedAt = parseTimestamp(requiredText(data, "updatedAt"));
+        String clientId = data.path("clientSub").asText(null);
+        if (clientId != null && clientId.isBlank()) {
+            clientId = null;
+        }
+
+        LocalDateTime updatedAt = resolveTimestamp(data.path("updatedAt").asText(null), event);
+        LocalDateTime createdAt = resolveTimestamp(data.path("createdAt").asText(null), event);
 
         Project project = projects.findById(projectId).orElseGet(Project::new);
         if (project.getUpdatedAt() != null && project.getUpdatedAt().isAfter(updatedAt)) {
@@ -45,10 +50,10 @@ public class ProjectProjectionService {
 
         project.setProjectId(projectId);
         project.setClientId(clientId);
-        project.setProjectName(requiredText(data, "projectName"));
+        project.setProjectName(data.path("projectName").asText("Proyecto sin nombre"));
         project.setDescription(data.path("description").isNull() ? null : data.path("description").asText(null));
-        project.setStatus(requiredText(data, "status"));
-        project.setCreatedAt(parseTimestamp(requiredText(data, "createdAt")));
+        project.setStatus(data.path("status").asText("active"));
+        project.setCreatedAt(createdAt);
         project.setUpdatedAt(updatedAt);
         projects.save(project);
         processedEvents.save(new ProcessedCollabEvent(eventId));
@@ -62,7 +67,20 @@ public class ProjectProjectionService {
         return value;
     }
 
-    private static LocalDateTime parseTimestamp(String value) {
-        return OffsetDateTime.parse(value).toLocalDateTime();
+    private static LocalDateTime resolveTimestamp(String explicitTimestamp, JsonNode event) {
+        if (explicitTimestamp != null && !explicitTimestamp.isBlank()) {
+            try {
+                return OffsetDateTime.parse(explicitTimestamp).toLocalDateTime();
+            } catch (Exception ignored) {
+            }
+        }
+        String eventTime = event.path("timestamp").asText(null);
+        if (eventTime != null && !eventTime.isBlank()) {
+            try {
+                return OffsetDateTime.parse(eventTime).toLocalDateTime();
+            } catch (Exception ignored) {
+            }
+        }
+        return LocalDateTime.now();
     }
 }

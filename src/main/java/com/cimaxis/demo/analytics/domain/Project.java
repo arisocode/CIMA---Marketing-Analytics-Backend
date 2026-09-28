@@ -31,7 +31,7 @@ public class Project {
     @Column(name = "project_id", length = 36)
     private String projectId;
 
-    @Column(name = "client_id", nullable = false, length = 36)
+    @Column(name = "client_id", length = 36)
     private String clientId;
 
     @Column(name = "project_name", nullable = false, length = 255)
