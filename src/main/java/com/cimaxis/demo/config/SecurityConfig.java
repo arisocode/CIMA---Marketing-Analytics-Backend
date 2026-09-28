@@ -45,6 +45,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/_gateway/**").permitAll()
+                .requestMatchers("/api/v1/.well-known/**").permitAll()
                 // Marketing and analytics expose commercial and cross-client data.
                 // They are operational back-office capabilities, not client-facing
                 // resources; enforce this policy at the service boundary as well

@@ -1,6 +1,6 @@
 # Integraciones y Plataforma: `crm-marketing`
 
-Este documento describe la integración de `crm-marketing` con el API Gateway KrakenD, la sincronización de datos con el CRM y la interacción con el motor de correos de `crm-media`.
+Este documento describe la integración de `crm-marketing` con el API Gateway KrakenD, la sincronización de datos con el CRM y la interacción con el bus de eventos en Redis Streams y el motor de correos de `crm-media`.
 
 ---
 
@@ -10,46 +10,64 @@ Este documento describe la integración de `crm-marketing` con el API Gateway Kr
                ┌───────────────────────┐
                │    KrakenD Gateway    │
                └───────────┬───────────┘
-                           │ (Peticiones Entrantes)
+                           │ (Peticiones Entrantes / X-User-Sub / X-User-Role)
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                        crm-marketing                        │
 │               (Módulos Marketing y Analytics)               │
 └──────────────┬───────────────────────────────┬──────────────┘
                │                               │
-               │ (Consulta Proyectos/Clientes) │ (Despacho de Correos)
+               │ (Consulta Proyectos/Clientes) │ (Consumo de Eventos de Proyectos)
                ▼                               ▼
       ┌──────────────────┐            ┌──────────────────┐
-      │    crm-collab    │            │    crm-media     │
-      │  (Vía Gateway)   │            │   (Vía HTTP M2M) │
-      └──────────────────┘            └──────────────────┘
+      │    crm-collab    │            │  Redis Streams   │
+      │  (Vía Gateway)   │            │ stream:collab... │
+      └──────────────────┘            │      events      │
+                                      └────────┬─────────┘
+                                               │
+                                               ▼
+                                  [ CollabProjectStreamConsumer ]
+                                   (Grupo: marketing-projector)
 ```
 
 ---
 
 ## 2. Integración con KrakenD API Gateway
 
-- **Manifiesto del Servicio**: [`gateway/gateway.manifest.json`](file:///d:/BACKUP%20CELULAR%20OLIMPO/crm-marketing/gateway/gateway.manifest.json).
-- **Consolidación en Infra**: Durante el build de infraestructura, `crm-infra` lee el manifiesto de marketing y genera las 30+ rutas correspondientes en `krakend.json`.
+- **Manifiesto del Servicio**: [`gateway/gateway.manifest.json`](../gateway/gateway.manifest.json).
+- **Consolidación en Infra**: Durante el build de infraestructura, `crm-infra` lee el manifiesto de marketing y genera las más de 40 rutas correspondientes en `krakend.json`.
 - **Rutas de Salud**:
   - `GET /api/v1/health` responde el estado del datasource y los hilos de ejecución de Spring.
   - KrakenD monitorea este endpoint aplicando disyuntores de circuito (*circuit breakers*) automáticos si se detectan 3 fallos consecutivos.
 
 ---
 
-## 3. Sincronización de Datos con el CRM (`CrmSyncService`)
+## 3. Consumo Asíncrono de Eventos en Redis Streams (`CollabProjectStreamConsumer`)
 
-Para mantener las proyecciones de analítica al día sin consultar directamente las bases de datos de otros microservicios:
+`crm-marketing` mantiene una vista materializada de proyectos en tiempo real consumiendo eventos publicados por `crm-collab`:
+
+- **Stream Consumido**: `stream:collab.events` (definido canónicamente en `STREAM_CONVENTIONS`).
+- **Grupo de Consumidores**: `marketing-projector` (configurable vía variable `COLLAB_PROJECTION_CONSUMER_GROUP`).
+- **Tipos de Eventos Procesados**:
+  - `project.created`: Inserta o actualiza la proyección del proyecto en la base de datos local (`schema_marketing.PROJECTS`).
+  - `project.updated`: Sincroniza cambios de estado, fechas y cliente asignado.
+- **Servicio de Proyección**: Gestionado por `ProjectProjectionService` para alimentar dashboards y reportes analíticos de manera reactiva e idempotente.
+
+---
+
+## 4. Sincronización Programada con el CRM (`CrmSyncService`)
+
+Como mecanismo de respaldo y rehidratación masiva complementario a los eventos en tiempo real:
 
 1. **Configuración de Sincronización**:
    - `cimaxis.crm.sync.enabled=true`: Habilita el sincronizador.
    - `cimaxis.crm.sync.on-startup=true`: Ejecuta una sincronización no bloqueante al iniciar. Si el CRM no responde, el servicio arranca con una advertencia en el log (*fail-safe*).
    - `cimaxis.crm.sync.cron=0 0 */6 * * *`: Tarea programada que refresca clientes y proyectos cada 6 horas.
-2. **Canal de Consulta**: Invoca los endpoints públicos del CRM a través de `CRM_BASE_URL`, poblando las tablas locales `CLIENTS` y `PROJECTS` en `schema_marketing`.
+2. **Canal de Consulta**: Invoca los endpoints públicos del CRM a través de `CRM_BASE_URL` (`http://localhost:28080`), poblando las tablas locales `CLIENTS` y `PROJECTS` en `schema_marketing`.
 
 ---
 
-## 4. Tareas Programadas y Automatización (*Schedulers*)
+## 5. Tareas Programadas y Automatización (*Schedulers*)
 
 El microservicio utiliza el planificador nativo de Spring (`@Scheduled`):
 

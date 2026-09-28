@@ -1,5 +1,7 @@
 # Guia rapida de desarrollo local
 
+> **Documento de archivo histórico**: Los puertos y variables han sido actualizados para reflejar los puertos canónicos consolidados de la plataforma (`PostgreSQL: 25432`, `Redis: 26379`, `KrakenD Gateway: 28080`). Para la arquitectura oficial consulte `ARQUITECTURA_CIMA_CRM.md` y `crm-infra/docs/ENVIRONMENT.md`.
+
 Esta guia es para trabajar en el modulo de Marketing sin levantar todos los microservicios del CRM.
 
 ## Repositorios
@@ -86,9 +88,9 @@ Despues de copiar `.env.example`, dejar estas variables asi para este flujo:
 
 ```env
 COMPOSE_PROJECT_NAME=crm_infra_local
-GATEWAY_HOST_PORT=18080
-POSTGRES_HOST_PORT=15432
-REDIS_HOST_PORT=16379
+GATEWAY_HOST_PORT=28080
+POSTGRES_HOST_PORT=25432
+REDIS_HOST_PORT=26379
 AUTH_DB_PASSWORD=authpassword
 MARKETING_DB_PASSWORD=marketingpassword
 ```
@@ -98,9 +100,9 @@ Usar `docker-compose.yml` permite levantar solo Postgres, Redis y el gateway nec
 Esto deja disponible:
 
 ```text
-PostgreSQL: localhost:15432
-Redis:      localhost:16379
-Gateway:    http://localhost:18080
+PostgreSQL: localhost:25432
+Redis:      localhost:26379
+Gateway:    http://localhost:28080
 ```
 
 ## 2. Levantar Auth local
@@ -130,12 +132,12 @@ El comando `pnpm jwt:gen-keys` imprime `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` y `JW
 Para desarrollo local, dejar tambien:
 
 ```env
-DATABASE_URL=postgres://auth_user:authpassword@localhost:15432/crm_database
+DATABASE_URL=postgres://auth_user:authpassword@localhost:25432/crm_database
 DB_SCHEMA=schema_auth
 NODE_ENV=development
 EXPOSE_TEMP_PASSWORDS=false
 REFRESH_COOKIE_PATH=/api/v1/auth/refresh
-REDIS_URL=redis://127.0.0.1:16379
+REDIS_URL=redis://127.0.0.1:26379
 AUTH_EVENTS_STREAM_KEY=stream:auth.identity
 AUTH_EVENTS_STREAM_MAXLEN=10000
 PORT=3000
@@ -203,12 +205,12 @@ El `.env` local esperado es:
 ```env
 PORT=3003
 DATABASE_HOST=localhost
-DATABASE_PORT=15432
+DATABASE_PORT=25432
 DATABASE_NAME=crm_database
 DB_SCHEMA=schema_marketing
 DATABASE_USER=marketing_user
 DATABASE_PASSWORD=marketingpassword
-CRM_BASE_URL=http://localhost:18080
+CRM_BASE_URL=http://localhost:28080
 ```
 
 ## 4. Levantar frontend

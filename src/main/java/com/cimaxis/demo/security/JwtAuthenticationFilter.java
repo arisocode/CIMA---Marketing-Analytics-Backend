@@ -3,6 +3,7 @@ package com.cimaxis.demo.security;
 import java.io.IOException;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,10 +16,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-/**
- * Filtro de autenticación para el ecosistema CIMA.
- */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final String expectedGatewaySecret;
+
+    public JwtAuthenticationFilter(
+            @Value("${cimaxis.security.gateway-secret:${INTERNAL_GATEWAY_SECRET:}}")
+            String expectedGatewaySecret) {
+        this.expectedGatewaySecret = expectedGatewaySecret != null ? expectedGatewaySecret.trim() : "";
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -26,11 +32,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Extraer las cabeceras validadas por el Gateway
         String gatewaySub = request.getHeader("X-User-Sub");
         String gatewayRole = request.getHeader("X-User-Role");
 
         if (gatewaySub != null && gatewayRole != null) {
+            if (!expectedGatewaySecret.isEmpty()) {
+                String providedSecret = request.getHeader("X-Gateway-Secret");
+                if (providedSecret == null || !expectedGatewaySecret.equals(providedSecret)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+            }
+
             UsernamePasswordAuthenticationToken authToken =
                 new UsernamePasswordAuthenticationToken(
                     gatewaySub,

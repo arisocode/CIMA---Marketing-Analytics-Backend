@@ -45,9 +45,9 @@ Ubicado en `src/main/java/com/cimaxis/demo/security/JwtAuthenticationFilter.java
 
 | Rol en Gateway | Autoridad Spring Security | Permisos en Marketing y Analítica |
 | :--- | :--- | :--- |
-| **`admin` / `superadmin`** | `ROLE_admin` | Acceso total: creación, modificación y eliminación de campañas, propuestas, flujos y reportes. |
+| **`admin`** | `ROLE_admin` | Acceso total: creación, modificación y eliminación de campañas, propuestas, flujos y reportes. |
 | **`worker`** | `ROLE_worker` | Gestión operativa: creación de propuestas, registro de interacciones, consulta de campañas y KPIs. |
-| **`cliente`** | `ROLE_cliente` | Acceso restringido: consulta exclusiva de campañas y propuestas vinculadas a su propio `clientId`. |
+| **`client`** | `ROLE_client` | Acceso restringido: consulta exclusiva de campañas y propuestas vinculadas a su propio `clientId`. |
 
 ---
 

@@ -57,7 +57,10 @@ El servicio inicia por defecto en `http://localhost:3003`.
 ## Pruebas y Validación de Calidad
 
 ```powershell
-# Ejecutar todas las pruebas con Testcontainers PostgreSQL
+# Ejecutar pruebas unitarias (sin requerir daemon de Docker):
+.\mvnw.cmd test "-Dtest=NotificationDispatcherTest,WorkflowExecutionServiceTest,AnalyticsServiceTest"
+
+# Ejecutar todas las pruebas con Testcontainers PostgreSQL (requiere Docker activo):
 .\mvnw.cmd test
 
 # Compilar el paquete JAR omitiendo tests
