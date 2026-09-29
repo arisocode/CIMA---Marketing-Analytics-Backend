@@ -1,6 +1,6 @@
 {
   "service": "marketing",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "endpoints": [
     {
       "endpoint": "/api/v1/marketing/campaigns",
@@ -38,7 +38,6 @@
       "backend_url": "/api/v1/marketing/campaigns/{id}",
       "openapi_ref": "DELETE /api/marketing/campaigns/{id}"
     },
-
     {
       "endpoint": "/api/v1/marketing/proposals",
       "method": "GET",
@@ -87,12 +86,15 @@
       "backend_url": "/api/v1/marketing/proposals/{id}/status",
       "openapi_ref": "PATCH /api/marketing/proposals/{id}/status"
     },
-
     {
       "endpoint": "/api/v1/marketing/interactions",
       "method": "GET",
       "backend_url": "/api/v1/marketing/interactions",
-      "openapi_ref": "GET /api/marketing/interactions"
+      "openapi_ref": "GET /api/marketing/interactions",
+      "input_query_strings": [
+        "from",
+        "to"
+      ]
     },
     {
       "endpoint": "/api/v1/marketing/interactions",
@@ -130,7 +132,6 @@
       "backend_url": "/api/v1/marketing/interactions/{id}/response",
       "openapi_ref": "PATCH /api/marketing/interactions/{id}/response"
     },
-
     {
       "endpoint": "/api/v1/marketing/clients",
       "method": "GET",
@@ -167,7 +168,6 @@
       "backend_url": "/api/v1/marketing/clients/{clientId}/plan",
       "openapi_ref": "PATCH /api/marketing/clients/{clientId}/plan"
     },
-
     {
       "endpoint": "/api/v1/marketing/segments/preview",
       "method": "POST",
@@ -180,7 +180,6 @@
       "backend_url": "/api/v1/marketing/segments/{workflowId}/execute",
       "openapi_ref": "POST /api/marketing/segments/{workflowId}/execute"
     },
-
     {
       "endpoint": "/api/v1/marketing/workflows",
       "method": "GET",
@@ -229,7 +228,6 @@
       "backend_url": "/api/v1/marketing/workflows/{id}/toggle",
       "openapi_ref": "PATCH /api/marketing/workflows/{id}/toggle"
     },
-
     {
       "endpoint": "/api/v1/marketing/executions/run/{workflowId}",
       "method": "POST",
@@ -254,14 +252,12 @@
       "backend_url": "/api/v1/marketing/executions/client/{clientId}",
       "openapi_ref": "GET /api/marketing/executions/client/{clientId}"
     },
-
     {
       "endpoint": "/api/v1/marketing/scheduler/run",
       "method": "POST",
       "backend_url": "/api/v1/marketing/scheduler/run",
       "openapi_ref": "POST /api/marketing/scheduler/run"
     },
-
     {
       "endpoint": "/api/v1/integration/clients",
       "method": "GET",
@@ -298,7 +294,6 @@
       "backend_url": "/api/v1/integration/clients/{clientId}/overview",
       "openapi_ref": "GET /api/integration/clients/{clientId}/overview"
     },
-
     {
       "endpoint": "/api/v1/analytics/summary",
       "method": "GET",
@@ -321,7 +316,12 @@
       "endpoint": "/api/v1/analytics/campaigns/status",
       "method": "GET",
       "backend_url": "/api/v1/analytics/campaigns/status",
-      "openapi_ref": "GET /api/analytics/campaigns/status"
+      "openapi_ref": "GET /api/analytics/campaigns/status",
+      "input_query_strings": [
+        "from",
+        "to",
+        "clientId"
+      ]
     },
     {
       "endpoint": "/api/v1/analytics/inventory/low-stock",
@@ -339,19 +339,29 @@
       "endpoint": "/api/v1/analytics/kpis/current",
       "method": "GET",
       "backend_url": "/api/v1/analytics/kpis/current",
-      "openapi_ref": "GET /api/analytics/kpis/current"
+      "openapi_ref": "GET /api/analytics/kpis/current",
+      "input_query_strings": [
+        "period"
+      ]
     },
     {
       "endpoint": "/api/v1/analytics/kpis/history",
       "method": "GET",
       "backend_url": "/api/v1/analytics/kpis/history",
-      "openapi_ref": "GET /api/analytics/kpis/history"
+      "openapi_ref": "GET /api/analytics/kpis/history",
+      "input_query_strings": [
+        "from",
+        "to"
+      ]
     },
     {
       "endpoint": "/api/v1/analytics/kpis/calculate",
       "method": "POST",
       "backend_url": "/api/v1/analytics/kpis/calculate",
-      "openapi_ref": "POST /api/analytics/kpis/calculate"
+      "openapi_ref": "POST /api/analytics/kpis/calculate",
+      "input_query_strings": [
+        "period"
+      ]
     },
     {
       "endpoint": "/api/v1/analytics/kpis/period/{period}",
@@ -363,19 +373,29 @@
       "endpoint": "/api/v1/analytics/export/kpis",
       "method": "GET",
       "backend_url": "/api/v1/analytics/export/kpis",
-      "openapi_ref": "GET /api/analytics/export/kpis"
+      "openapi_ref": "GET /api/analytics/export/kpis",
+      "input_query_strings": [
+        "format",
+        "period"
+      ]
     },
     {
       "endpoint": "/api/v1/analytics/export/campaigns",
       "method": "GET",
       "backend_url": "/api/v1/analytics/export/campaigns",
-      "openapi_ref": "GET /api/analytics/export/campaigns"
+      "openapi_ref": "GET /api/analytics/export/campaigns",
+      "input_query_strings": [
+        "format"
+      ]
     },
     {
       "endpoint": "/api/v1/analytics/export/low-stock",
       "method": "GET",
       "backend_url": "/api/v1/analytics/export/low-stock",
-      "openapi_ref": "GET /api/analytics/export/low-stock"
+      "openapi_ref": "GET /api/analytics/export/low-stock",
+      "input_query_strings": [
+        "format"
+      ]
     },
     {
       "endpoint": "/api/v1/analytics/kpis/current/{period}",
