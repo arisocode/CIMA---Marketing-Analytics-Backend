@@ -18,7 +18,7 @@ import lombok.Setter;
 @Builder
 public class SegmentCriteria {
 
-    /** Planes contratados: Oro, Esmeralda, Premium. */
+    /** Planes contratados: Platinum, Oro, Diamante. */
     private List<String> plans;
 
     /** true = solo clientes con al menos un proyecto; false = solo sin proyectos. */

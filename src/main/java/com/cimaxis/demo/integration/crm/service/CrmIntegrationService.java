@@ -50,18 +50,36 @@ public class CrmIntegrationService {
     }
 
     public String extractClientName(Map<String, Object> client) {
-        if (client.containsKey("name")) return (String) client.get("name");
-        if (client.containsKey("first_name") || client.containsKey("firstName")) {
-            String first = (String) (client.containsKey("first_name") ? client.get("first_name") : client.get("firstName"));
-            String last = (String) (client.containsKey("last_name") ? client.get("last_name") : client.get("lastName"));
-            if (first != null || last != null) {
-                return ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
-            }
+        if (client == null) return "Cliente";
+        Object valor = client.get("name");
+        if (esTexto(valor)) return valor.toString().trim();
+
+        String first = textoDe(client, "first_name", "firstName");
+        String last  = textoDe(client, "last_name", "lastName");
+        if (first != null || last != null) {
+            String completo = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+            if (!completo.isEmpty()) return completo;
         }
-        if (client.containsKey("company_name")) return (String) client.get("company_name");
-        if (client.containsKey("companyName")) return (String) client.get("companyName");
-        if (client.containsKey("email")) return (String) client.get("email");
-        return "Cliente desconocido";
+
+        String empresa = textoDe(client, "company_name", "companyName");
+        if (empresa != null) return empresa;
+
+        String correo = extractClientEmail(client);
+        if (correo != null && !correo.isBlank()) return correo;
+
+        return "Cliente";
+    }
+
+    private boolean esTexto(Object valor) {
+        return valor instanceof String s && !s.isBlank();
+    }
+
+    private String textoDe(Map<String, Object> origen, String... claves) {
+        for (String clave : claves) {
+            Object valor = origen.get(clave);
+            if (esTexto(valor)) return valor.toString().trim();
+        }
+        return null;
     }
 
     public String extractClientEmail(Map<String, Object> client) {

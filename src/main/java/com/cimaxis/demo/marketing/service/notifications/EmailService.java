@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -44,6 +45,11 @@ public class EmailService {
     @Value("${cimaxis.mail.subject-prefix:[CIMA] }")
     private String subjectPrefix;
 
+    /**
+     * Constructor que usa Spring. Con dos constructores publicos Spring no sabe
+     * cual elegir y el contexto no arranca; el de tres parametros queda para pruebas.
+     */
+    @Autowired
     public EmailService(ServiceJwtSigner jwtSigner, JsonMapper jsonMapper) {
         this(jwtSigner, jsonMapper, HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))

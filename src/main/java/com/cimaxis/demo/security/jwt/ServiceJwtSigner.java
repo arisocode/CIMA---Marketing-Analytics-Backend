@@ -14,6 +14,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +32,11 @@ public class ServiceJwtSigner {
     private final RSAPrivateKey privateKey;
     private final JsonMapper jsonMapper;
 
+    /**
+     * Constructor que usa Spring (genera el par RSA al arrancar). Sin @Autowired,
+     * al haber dos constructores publicos el contexto no arranca.
+     */
+    @Autowired
     public ServiceJwtSigner(
             @Value("${cimaxis.jwt.service-name:crm-marketing}") String serviceName,
             @Value("${cimaxis.jwt.kid:marketing-service-rsa-1}") String keyId,

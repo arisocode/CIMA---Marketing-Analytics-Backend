@@ -57,7 +57,7 @@ public class ClientPlanController {
         return ResponseEntity.ok(clientPlanService.assignPlan(clientId, body.get("plan")));
     }
 
-    /** Asignacion masiva. Cuerpo: {"uuid-1": "Oro", "uuid-2": "Premium"} */
+    /** Asignacion masiva. Cuerpo: {"uuid-1": "Oro", "uuid-2": "Diamante"} */
     @PatchMapping("/plans")
     @PreAuthorize("hasAnyRole('admin','worker')")
     public ResponseEntity<Map<String, Object>> assignPlanBulk(
