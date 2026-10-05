@@ -92,7 +92,7 @@ public class AnalyticsService {
                 .totalClients(clientRepository.count())
                 .totalUsers(userRepository.count())
                 .totalCampaigns(campaignRepository.count())
-                .activeCampaigns(campaignRepository.findByStatus(Campaign.CampaignStatus.Active).size())
+                .activeCampaigns(campaignRepository.countByStatus(Campaign.CampaignStatus.Active))
                 .totalProjects(projectRepository.count())
                 .projectsInProgress(projectRepository.countByStatusIn(ESTADOS_EN_CURSO))
                 .totalProducts(productRepository.count())
@@ -116,17 +116,13 @@ public class AnalyticsService {
     }
 
     public List<ClientActivityDto> getClientActivities() {
-        return clientRepository.findAll().stream()
-                .map(client -> {
-                    long campaignCount = campaignRepository.findByClientId(client.getClientId()).size();
-                    long projectCount = projectRepository.countByClientId(client.getClientId());
-                    return ClientActivityDto.builder()
-                            .clientId(client.getClientId())
-                            .plan(client.getPlan() != null ? client.getPlan().name() : "Unknown")
-                            .campaignCount(campaignCount)
-                            .projectCount(projectCount)
-                            .build();
-                })
+        return clientRepository.findClientActivitiesSummary().stream()
+                .map(summary -> ClientActivityDto.builder()
+                        .clientId(summary.getClientId())
+                        .plan(summary.getPlan() != null ? summary.getPlan().name() : "Unknown")
+                        .campaignCount(summary.getCampaignCount())
+                        .projectCount(summary.getProjectCount())
+                        .build())
                 .collect(Collectors.toList());
     }
 

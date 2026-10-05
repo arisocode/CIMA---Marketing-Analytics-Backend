@@ -17,6 +17,7 @@ public interface CampaignRepository extends JpaRepository<Campaign, Integer> {
     List<Campaign> findByClientId(String clientId);
 
     List<Campaign> findByStatus(Campaign.CampaignStatus status);
+    long countByStatus(Campaign.CampaignStatus status);
 
     List<Campaign> findByCreatedBy(String createdBy);
 
