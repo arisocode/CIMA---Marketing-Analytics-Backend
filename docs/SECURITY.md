@@ -51,8 +51,12 @@ Ubicado en `src/main/java/com/cimaxis/demo/security/JwtAuthenticationFilter.java
 
 ---
 
-## 4. Comunicación Segura de Salida hacia `crm-media`
+## 4. Comunicación Segura de Salida hacia `crm-media` (Service JWT M2M)
 
 Cuando `crm-marketing` requiere despachar correos electrónicos (campañas masivas o alertas administrativas):
 - No se conecta directamente a servidores SMTP.
-- Invoca de forma interna el endpoint `POST /api/v1/emails/send` de `crm-media`, autenticándose como servicio mediante un Service JWT firmado con algoritmo `RS256`.
+- Invoca de forma interna el endpoint `POST /api/v1/emails/send` de `crm-media`, autenticándose como servicio mediante un Service JWT firmado con algoritmo `RS256` emitido por `ServiceJwtSigner`.
+- **Parametrización de Claves Criptográficas M2M**:
+  - `SERVICE_JWT_PRIVATE_KEY`: Clave privada en formato PKCS#8 PEM requerida en producción para habilitar escalado horizontal y rolling restarts consistentes.
+  - `SERVICE_JWT_PUBLIC_KEY`: Clave pública SPKI PEM correspondiente expuesta en el endpoint JWKS (`GET /api/v1/marketing/.well-known/jwks.json`). Si se omite, se deriva automáticamente de la clave CRT.
+  - Fallback a generación efímera en memoria con advertencia de log si no están configuradas en entornos locales de desarrollo.

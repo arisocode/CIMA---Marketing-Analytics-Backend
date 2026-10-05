@@ -3,6 +3,8 @@ package com.cimaxis.demo.security.jwt;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.Signature;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
@@ -10,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import tools.jackson.core.type.TypeReference;
@@ -27,6 +30,7 @@ class ServiceJwtSignerTest {
     }
 
     @Test
+    @DisplayName("Genera documento JWKS valido")
     void generatesValidJwksDocument() {
         Map<String, Object> jwks = signer.getJwksDocument();
 
@@ -45,6 +49,7 @@ class ServiceJwtSignerTest {
     }
 
     @Test
+    @DisplayName("Firma asercion JWT valida verificable con su clave publica")
     void signsValidJwtAssertion() throws Exception {
         String token = signer.signToken("crm-media:email", "email:dispatch", "dummy-hash-123");
 
@@ -72,6 +77,60 @@ class ServiceJwtSignerTest {
         verifier.initVerify(publicKey);
         verifier.update((parts[0] + "." + parts[1]).getBytes(StandardCharsets.UTF_8));
         boolean valid = verifier.verify(Base64.getUrlDecoder().decode(parts[2]));
+        assertThat(valid).isTrue();
+    }
+
+    @Test
+    @DisplayName("Carga par de claves RSA estatico desde variables PEM y firma tokens validos")
+    void loadsStaticRsaKeyPairFromPem() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        KeyPair pair = generator.generateKeyPair();
+
+        String privPem = "-----BEGIN PRIVATE KEY-----\n"
+                + Base64.getMimeEncoder().encodeToString(pair.getPrivate().getEncoded())
+                + "\n-----END PRIVATE KEY-----";
+        String pubPem = "-----BEGIN PUBLIC KEY-----\n"
+                + Base64.getMimeEncoder().encodeToString(pair.getPublic().getEncoded())
+                + "\n-----END PUBLIC KEY-----";
+
+        ServiceJwtSigner staticSigner = new ServiceJwtSigner(
+                "crm-marketing", "static-kid", privPem, pubPem, jsonMapper);
+
+        String token = staticSigner.signToken("crm-collab", "service:auth", "hash-abc");
+        String[] parts = token.split("\\.");
+
+        Signature verifier = Signature.getInstance("SHA256withRSA");
+        verifier.initVerify(pair.getPublic());
+        verifier.update((parts[0] + "." + parts[1]).getBytes(StandardCharsets.UTF_8));
+        boolean valid = verifier.verify(Base64.getUrlDecoder().decode(parts[2]));
+
+        assertThat(valid).isTrue();
+        assertThat(staticSigner.getJwksDocument()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Deriva clave publica automaticamente cuando solo se provee la clave privada CRT")
+    void derivesPublicKeyWhenOnlyPrivateKeyProvided() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        KeyPair pair = generator.generateKeyPair();
+
+        String privPem = "-----BEGIN PRIVATE KEY-----\n"
+                + Base64.getMimeEncoder().encodeToString(pair.getPrivate().getEncoded())
+                + "\n-----END PRIVATE KEY-----";
+
+        ServiceJwtSigner staticSigner = new ServiceJwtSigner(
+                "crm-marketing", "derived-kid", privPem, "", jsonMapper);
+
+        String token = staticSigner.signToken("crm-media", "email:send", "hash-xyz");
+        String[] parts = token.split("\\.");
+
+        Signature verifier = Signature.getInstance("SHA256withRSA");
+        verifier.initVerify(pair.getPublic());
+        verifier.update((parts[0] + "." + parts[1]).getBytes(StandardCharsets.UTF_8));
+        boolean valid = verifier.verify(Base64.getUrlDecoder().decode(parts[2]));
+
         assertThat(valid).isTrue();
     }
 }
