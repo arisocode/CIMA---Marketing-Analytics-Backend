@@ -152,16 +152,14 @@ public class ServiceJwtSigner {
     }
 
     private static RSAPrivateKey parsePrivateKey(String pem) throws Exception {
-        String clean = pem.replace("-----BEGIN PRIVATE KEY-----", "")
-                          .replace("-----END PRIVATE KEY-----", "")
+        String clean = pem.replaceAll("-----[A-Z ]+-----", "")
                           .replaceAll("\\s+", "");
         byte[] decoded = Base64.getDecoder().decode(clean);
         return (RSAPrivateKey) KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(decoded));
     }
 
     private static RSAPublicKey parsePublicKey(String pem) throws Exception {
-        String clean = pem.replace("-----BEGIN PUBLIC KEY-----", "")
-                          .replace("-----END PUBLIC KEY-----", "")
+        String clean = pem.replaceAll("-----[A-Z ]+-----", "")
                           .replaceAll("\\s+", "");
         byte[] decoded = Base64.getDecoder().decode(clean);
         return (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(decoded));

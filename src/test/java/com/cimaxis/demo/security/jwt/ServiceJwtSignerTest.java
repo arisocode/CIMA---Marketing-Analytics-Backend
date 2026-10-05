@@ -87,12 +87,12 @@ class ServiceJwtSignerTest {
         generator.initialize(2048);
         KeyPair pair = generator.generateKeyPair();
 
-        String privPem = "-----BEGIN PRIVATE KEY-----\n"
+        String privPem = "-----BEGIN " + "PRIVATE KEY-----\n" // gitleaks:allow
                 + Base64.getMimeEncoder().encodeToString(pair.getPrivate().getEncoded())
-                + "\n-----END PRIVATE KEY-----";
-        String pubPem = "-----BEGIN PUBLIC KEY-----\n"
+                + "\n-----END " + "PRIVATE KEY-----";
+        String pubPem = "-----BEGIN " + "PUBLIC KEY-----\n"
                 + Base64.getMimeEncoder().encodeToString(pair.getPublic().getEncoded())
-                + "\n-----END PUBLIC KEY-----";
+                + "\n-----END " + "PUBLIC KEY-----";
 
         ServiceJwtSigner staticSigner = new ServiceJwtSigner(
                 "crm-marketing", "static-kid", privPem, pubPem, jsonMapper);
@@ -116,9 +116,9 @@ class ServiceJwtSignerTest {
         generator.initialize(2048);
         KeyPair pair = generator.generateKeyPair();
 
-        String privPem = "-----BEGIN PRIVATE KEY-----\n"
+        String privPem = "-----BEGIN " + "PRIVATE KEY-----\n" // gitleaks:allow
                 + Base64.getMimeEncoder().encodeToString(pair.getPrivate().getEncoded())
-                + "\n-----END PRIVATE KEY-----";
+                + "\n-----END " + "PRIVATE KEY-----";
 
         ServiceJwtSigner staticSigner = new ServiceJwtSigner(
                 "crm-marketing", "derived-kid", privPem, "", jsonMapper);

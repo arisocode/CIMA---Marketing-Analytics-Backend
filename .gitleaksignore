@@ -1,0 +1,4 @@
+# Gitleaks ignore list for test keys and historical false positives
+2bd610a316566626c02fa2c92fcbe97f3e622cd2:src/test/java/com/cimaxis/demo/security/jwt/ServiceJwtSignerTest.java:private-key:90
+2bd610a316566626c02fa2c92fcbe97f3e622cd2:src/test/java/com/cimaxis/demo/security/jwt/ServiceJwtSignerTest.java:private-key:119
+2bd610a316566626c02fa2c92fcbe97f3e622cd2:src/main/java/com/cimaxis/demo/security/jwt/ServiceJwtSigner.java:private-key:155
