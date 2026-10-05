@@ -10,9 +10,12 @@ import com.cimaxis.demo.analytics.domain.Client;
 import com.cimaxis.demo.analytics.repository.ClientRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.cimaxis.demo.config.ResourceNotFoundException;
 import com.cimaxis.demo.integration.crm.service.CrmIntegrationService;
@@ -49,6 +52,11 @@ public class WorkflowExecutionService {
     @Value("${cimaxis.scheduler.max-delivery-attempts:3}")
     private long maxDeliveryAttempts;
 
+    @Autowired(required = false)
+    private PlatformTransactionManager transactionManager;
+
+    private TransactionTemplate transactionTemplate;
+
     public WorkflowExecutionService(
             WorkflowRepository workflowRepository,
             WorkflowExecutionRepository executionRepository,
@@ -66,8 +74,17 @@ public class WorkflowExecutionService {
         this.clientRepository = clientRepository;
     }
 
+    private <T> T executeInTransaction(TransactionCallback<T> action) {
+        if (transactionManager != null) {
+            if (transactionTemplate == null) {
+                transactionTemplate = new TransactionTemplate(transactionManager);
+            }
+            return transactionTemplate.execute(action);
+        }
+        return action.doInTransaction(null);
+    }
+
     /** Ejecuta un workflow sobre todos los clientes del CRM (CU-05). */
-    @Transactional
     public List<WorkflowExecutionResponse> executeWorkflow(Integer workflowId,
                                                            String bearerToken,
                                                            String loggedByUserId) {
@@ -92,7 +109,6 @@ public class WorkflowExecutionService {
     }
 
     /** Ejecuta un workflow sobre un cliente puntual. */
-    @Transactional
     public WorkflowExecutionResponse executeWorkflowForClient(Integer workflowId,
                                                               String clientId,
                                                               String bearerToken,
@@ -112,7 +128,6 @@ public class WorkflowExecutionService {
     /**
      * Ejecuta un workflow sobre una lista concreta de clientes.
      */
-    @Transactional
     public List<WorkflowExecution> executeForClients(Workflow workflow,
                                                      List<String> clientIds,
                                                      String bearerToken,
@@ -189,15 +204,14 @@ public class WorkflowExecutionService {
             execution.setErrorDetail(dispatch.detail());
         }
 
-        // Se persiste primero la ejecucion para disponer del execution_id
-        execution = executionRepository.save(execution);
-
-        // La trazabilidad se registra incluso si la entrega fallo: el intento
-        // de contacto tambien es informacion comercial.
-        registrarInteraccion(workflow, clientId, execution.getExecutionId(),
-                loggedByUserId, dispatch);
-
-        return execution;
+        final DispatchResult finalDispatch = dispatch;
+        final WorkflowExecution toPersist = execution;
+        return executeInTransaction(status -> {
+            WorkflowExecution saved = executionRepository.save(toPersist);
+            registrarInteraccion(workflow, clientId, saved.getExecutionId(),
+                    loggedByUserId, finalDispatch);
+            return saved;
+        });
     }
 
     private Workflow requireActiveWorkflow(Integer workflowId) {
