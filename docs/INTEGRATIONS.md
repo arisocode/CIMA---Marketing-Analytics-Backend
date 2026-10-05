@@ -64,6 +64,10 @@ Como mecanismo de respaldo y rehidratación masiva complementario a los eventos 
    - `cimaxis.crm.sync.on-startup=true`: Ejecuta una sincronización no bloqueante al iniciar. Si el CRM no responde, el servicio arranca con una advertencia en el log (*fail-safe*).
    - `cimaxis.crm.sync.cron=0 0 */6 * * *`: Tarea programada que refresca clientes y proyectos cada 6 horas.
 2. **Canal de Consulta**: Invoca los endpoints públicos del CRM a través de `CRM_BASE_URL` (`http://localhost:28080`), poblando las tablas locales `CLIENTS` y `PROJECTS` en `schema_marketing`.
+3. **Resiliencia HTTP y Timeouts**:
+   - `CrmAuthClient`, `CrmClientClient` y `CrmProjectClient` operan sobre una instancia administrada de `RestTemplate` provista por `HttpClientConfig`.
+   - Utiliza `JdkClientHttpRequestFactory` con connection pooling nativo de Java 21 (`HttpClient`).
+   - Timeouts acotados configurables: `crm.client.connect-timeout-seconds` (3s por defecto) y `crm.client.read-timeout-seconds` (5s por defecto), evitando bloqueo indefinido de hilos Tomcat.
 
 ---
 

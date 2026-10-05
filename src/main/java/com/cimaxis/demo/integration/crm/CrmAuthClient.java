@@ -1,18 +1,28 @@
 package com.cimaxis.demo.integration.crm;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.*;
+
 import java.util.Map;
 
 @Component
 public class CrmAuthClient {
 
-    @Value("${crm.base.url}")
-    private String crmBaseUrl;
+    private final String crmBaseUrl;
+    private final RestTemplate restTemplate;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    public CrmAuthClient(
+            @Value("${crm.base.url}") String crmBaseUrl,
+            RestTemplate restTemplate
+    ) {
+        this.crmBaseUrl = crmBaseUrl;
+        this.restTemplate = restTemplate;
+    }
 
     public String login(String email, String password) {
         String url = crmBaseUrl + "/api/v1/auth/login";
