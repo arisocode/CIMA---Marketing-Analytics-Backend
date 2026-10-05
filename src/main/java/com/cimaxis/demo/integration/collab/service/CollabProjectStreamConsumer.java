@@ -1,5 +1,6 @@
 package com.cimaxis.demo.integration.collab.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,9 @@ public class CollabProjectStreamConsumer {
     private final int batchSize;
     private final int maxRetries;
     private volatile boolean consumerGroupReady;
+    private static final long CLAIM_INTERVAL_MS = 30_000L;
+    private static final long MIN_IDLE_CLAIM_MS = 30_000L;
+    private long lastClaimTimeMs = 0L;
 
     public CollabProjectStreamConsumer(
             StringRedisTemplate redis,
@@ -69,6 +73,7 @@ public class CollabProjectStreamConsumer {
         try {
             ensureConsumerGroup();
             drainPendingMessages();
+            claimOrphanedMessagesIfDue();
             readNewMessages();
         } catch (DataAccessException error) {
             consumerGroupReady = false;
@@ -85,6 +90,40 @@ public class CollabProjectStreamConsumer {
             for (MapRecord<String, Object, Object> message : pending) {
                 processMessage(message);
             }
+        }
+    }
+
+    private void claimOrphanedMessagesIfDue() {
+        long now = System.currentTimeMillis();
+        if (now - lastClaimTimeMs < CLAIM_INTERVAL_MS) {
+            return;
+        }
+        lastClaimTimeMs = now;
+        claimOrphanedMessages();
+    }
+
+    private void claimOrphanedMessages() {
+        try {
+            PendingMessages pending = redis.opsForStream().pending(
+                    stream, group, Range.unbounded(), batchSize);
+            if (pending == null || pending.isEmpty()) return;
+
+            for (var pm : pending) {
+                if (pm.getElapsedTimeSinceLastDelivery().toMillis() >= MIN_IDLE_CLAIM_MS
+                        && !consumer.equals(pm.getConsumerName())) {
+                    List<MapRecord<String, Object, Object>> claimed = redis.opsForStream().claim(
+                            stream, group, consumer, Duration.ofMillis(MIN_IDLE_CLAIM_MS), pm.getId());
+                    if (claimed != null && !claimed.isEmpty()) {
+                        log.info("Mensaje huerfano {} reclamado de consumidor inactivo {}",
+                                pm.getId(), pm.getConsumerName());
+                        for (MapRecord<String, Object, Object> message : claimed) {
+                            processMessage(message);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("No se pudieron reclamar mensajes huerfanos de la PEL: {}", e.getMessage());
         }
     }
 

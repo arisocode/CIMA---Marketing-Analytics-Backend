@@ -138,4 +138,36 @@ class CollabProjectStreamConsumerTest {
         verify(streamOps).add(eq(DLQ), any(Map.class));
         verify(streamOps).acknowledge(STREAM, GROUP, recordId);
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void claimsOrphanedMessagesFromInactiveConsumers() {
+        RecordId recordId = RecordId.of("400-0");
+        String payload = """
+            {"id":"e-4","type":"project.created","data":{"projectId":"p-4"}}
+            """;
+        MapRecord<String, Object, Object> record = MapRecord.create(
+                STREAM, Map.<Object, Object>of("payload", payload)).withId(recordId);
+
+        when(streamOps.read(any(Consumer.class), any(StreamReadOptions.class), any(StreamOffset.class)))
+                .thenReturn(List.of())
+                .thenReturn(List.of());
+
+        PendingMessage orphanedMsg = mock(PendingMessage.class);
+        when(orphanedMsg.getId()).thenReturn(recordId);
+        when(orphanedMsg.getConsumerName()).thenReturn("dead-pod-consumer");
+        when(orphanedMsg.getElapsedTimeSinceLastDelivery()).thenReturn(java.time.Duration.ofMillis(35000L));
+        PendingMessages pendingMessages = new PendingMessages(GROUP, List.of(orphanedMsg));
+
+        when(streamOps.pending(eq(STREAM), eq(GROUP), any(Range.class), eq(50L)))
+                .thenReturn(pendingMessages);
+
+        when(streamOps.claim(eq(STREAM), eq(GROUP), eq(CONSUMER), any(java.time.Duration.class), eq(recordId)))
+                .thenReturn(List.of(record));
+
+        consumer.consume();
+
+        verify(projectionService).apply(any());
+        verify(streamOps).acknowledge(STREAM, GROUP, recordId);
+    }
 }
