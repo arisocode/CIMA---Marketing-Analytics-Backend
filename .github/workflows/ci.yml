@@ -16,7 +16,4 @@ jobs:
       component: marketing
       language: java
       build_tool: maven
-      runs_db: true
-      runs_redis: true
-      db_schema: schema_marketing
     secrets: inherit
