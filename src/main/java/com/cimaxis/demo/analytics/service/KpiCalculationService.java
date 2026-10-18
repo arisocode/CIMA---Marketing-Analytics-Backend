@@ -1,14 +1,15 @@
 package com.cimaxis.demo.analytics.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -42,9 +43,12 @@ import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRe
  *  3. estimated_revenue    - valor de propuestas aprobadas en el periodo
  *  4. active_campaigns     - campanas vigentes durante el periodo
  *  5. clients_contacted    - clientes distintos contactados
- *  6. response_rate        - respuestas / clientes contactados * 100
+ *  6. response_rate        - clientes que respondieron / clientes contactados * 100
  *  7. avg_close_days       - dias promedio entre alta del cliente y cierre
  *  8. projects_in_progress - proyectos en curso al cierre del periodo
+ *
+ * El numero de cada KPI se deriva de los registros de select(period), los mismos
+ * que lista KpiDetailService, para que la tarjeta y su detalle coincidan siempre.
  */
 @Service
 public class KpiCalculationService {
@@ -120,78 +124,131 @@ public class KpiCalculationService {
     }
 
     private KpiSnapshot calcularSnapshot(String period) {
-        YearMonth ym = parsePeriod(period);
+        return toSnapshot(select(period));
+    }
+
+    /**
+     * Reune los registros que componen cada KPI del periodo. Es la base comun del
+     * calculo de KPIs y de su detalle (KpiDetailService), para que ambos coincidan.
+     */
+    public KpiSelection select(String period) {
+        YearMonth ym = resolvePeriod(period);
         LocalDateTime desde = ym.atDay(1).atStartOfDay();
         LocalDateTime hasta = ym.atEndOfMonth().atTime(23, 59, 59);
         LocalDate desdeFecha = ym.atDay(1);
         LocalDate hastaFecha = ym.atEndOfMonth();
 
-        long clientesNuevos = clientRepository.countByCreatedAtBetween(desde, hasta);
+        List<Client> clientesNuevos = clientRepository.findByCreatedAtBetween(desde, hasta);
 
         List<Project> cerradosEnPeriodo =
                 projectRepository.findByStatusInAndUpdatedAtBetween(ESTADOS_CERRADO, desde, hasta);
-        long proyectosCerrados = cerradosEnPeriodo.size();
 
-        BigDecimal ingresos = proposalRepository.sumValueByStatusBetween(
+        List<Proposal> aprobadas = proposalRepository.findByStatusAndResponseDateBetween(
                 Proposal.ProposalStatus.Approved, desdeFecha, hastaFecha);
-        if (ingresos == null) {
-            ingresos = BigDecimal.ZERO;
-        }
 
-        long campanasActivas = campaignRepository.countActiveInPeriod(
+        List<Campaign> campanasActivas = campaignRepository.findActiveInPeriod(
                 Campaign.CampaignStatus.Active, desdeFecha, hastaFecha);
 
-        long clientesContactados =
-                interactionRepository.countDistinctClientsContactedBetween(desde, hasta);
+        List<MarketingInteraction> interacciones =
+                interactionRepository.findByContactDateBetween(desde, hasta);
 
-        long respuestas = interactionRepository.countResponsesBetween(desde, hasta, TIPOS_RESPUESTA);
+        List<Project> enCurso = projectRepository.findByStatusIn(ESTADOS_EN_CURSO);
 
-        BigDecimal tasaRespuesta = clientesContactados == 0
-                ? BigDecimal.ZERO
-                : BigDecimal.valueOf(respuestas)
-                .multiply(BigDecimal.valueOf(100))
-                .divide(BigDecimal.valueOf(clientesContactados), 2, RoundingMode.HALF_UP);
+        return new KpiSelection(
+                ym,
+                nullSafe(clientesNuevos),
+                nullSafe(cerradosEnPeriodo),
+                nullSafe(aprobadas),
+                nullSafe(campanasActivas),
+                resumirPorCliente(nullSafe(interacciones), false),
+                resumirPorCliente(nullSafe(interacciones), true),
+                calcularTiemposDeCierre(nullSafe(cerradosEnPeriodo)),
+                nullSafe(enCurso));
+    }
 
-        BigDecimal diasPromedioCierre = calcularDiasPromedioCierre(cerradosEnPeriodo);
-
-        long proyectosEnCurso = projectRepository.countByStatusIn(ESTADOS_EN_CURSO);
-
+    private KpiSnapshot toSnapshot(KpiSelection seleccion) {
         return KpiSnapshot.builder()
-                .period(ym.format(PERIOD_FORMAT))
+                .period(seleccion.period().format(PERIOD_FORMAT))
                 .calculatedAt(LocalDateTime.now())
-                .newClients((int) clientesNuevos)
-                .closedProjects((int) proyectosCerrados)
-                .estimatedRevenue(ingresos)
-                .activeCampaigns((int) campanasActivas)
-                .clientsContacted((int) clientesContactados)
-                .responseRate(tasaRespuesta)
-                .avgCloseDays(diasPromedioCierre)
-                .projectsInProgress((int) proyectosEnCurso)
+                .newClients(seleccion.newClients().size())
+                .closedProjects(seleccion.closedProjects().size())
+                .estimatedRevenue(seleccion.estimatedRevenue())
+                .activeCampaigns(seleccion.activeCampaigns().size())
+                .clientsContacted(seleccion.contactedClients().size())
+                .responseRate(seleccion.responseRate())
+                .avgCloseDays(seleccion.avgCloseDays())
+                .projectsInProgress(seleccion.projectsInProgress().size())
                 .build();
     }
 
-    private BigDecimal calcularDiasPromedioCierre(List<Project> proyectosCerrados) {
-        long acumulado = 0;
-        int considerados = 0;
+    /** Una interaccion cuenta como respuesta si trae texto de respuesta o es de un tipo de respuesta. */
+    public static boolean esRespuesta(MarketingInteraction interaction) {
+        return interaction.getResponse() != null
+                || (interaction.getInteractionType() != null
+                    && TIPOS_RESPUESTA.contains(interaction.getInteractionType()));
+    }
 
+    /**
+     * Agrupa las interacciones por cliente (ultima fecha y cantidad). Con soloRespuestas
+     * considera unicamente las interacciones que cuentan como respuesta.
+     */
+    private List<KpiSelection.ClientContact> resumirPorCliente(List<MarketingInteraction> interacciones,
+                                                               boolean soloRespuestas) {
+        Map<String, LocalDateTime> ultima = new LinkedHashMap<>();
+        Map<String, Long> cantidad = new LinkedHashMap<>();
+        for (MarketingInteraction interaction : interacciones) {
+            if (interaction.getClientId() == null) continue;
+            if (soloRespuestas && !esRespuesta(interaction)) continue;
+            String clientId = interaction.getClientId();
+            cantidad.merge(clientId, 1L, Long::sum);
+            LocalDateTime fecha = interaction.getContactDate();
+            LocalDateTime previa = ultima.get(clientId);
+            if (previa == null || (fecha != null && fecha.isAfter(previa))) {
+                ultima.put(clientId, fecha);
+            }
+        }
+        List<KpiSelection.ClientContact> resultado = new ArrayList<>();
+        cantidad.forEach((clientId, total) ->
+                resultado.add(new KpiSelection.ClientContact(clientId, ultima.get(clientId), total)));
+        return resultado;
+    }
+
+    /** Dias entre el alta del cliente y el cierre; omite proyectos sin cliente o sin fechas. */
+    private List<KpiSelection.ProjectCloseTime> calcularTiemposDeCierre(List<Project> proyectosCerrados) {
+        List<String> clientIds = proyectosCerrados.stream()
+                .map(Project::getClientId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+        Map<String, Client> clientes = new HashMap<>();
+        if (!clientIds.isEmpty()) {
+            for (Client client : nullSafe(clientRepository.findAllById(clientIds))) {
+                clientes.put(client.getClientId(), client);
+            }
+        }
+
+        List<KpiSelection.ProjectCloseTime> tiempos = new ArrayList<>();
         for (Project project : proyectosCerrados) {
             if (project.getUpdatedAt() == null || project.getClientId() == null) continue;
 
-            Optional<Client> client = clientRepository.findById(project.getClientId());
-            if (client.isEmpty() || client.get().getCreatedAt() == null) continue;
+            Client client = clientes.get(project.getClientId());
+            if (client == null || client.getCreatedAt() == null) continue;
 
-            long dias = ChronoUnit.DAYS.between(
-                    client.get().getCreatedAt(), project.getUpdatedAt());
+            long dias = ChronoUnit.DAYS.between(client.getCreatedAt(), project.getUpdatedAt());
             if (dias < 0) continue;
 
-            acumulado += dias;
-            considerados++;
+            tiempos.add(new KpiSelection.ProjectCloseTime(project, client, dias));
         }
+        return tiempos;
+    }
 
-        return considerados == 0
-                ? BigDecimal.ZERO
-                : BigDecimal.valueOf(acumulado)
-                .divide(BigDecimal.valueOf(considerados), 2, RoundingMode.HALF_UP);
+    private static <T> List<T> nullSafe(List<T> lista) {
+        return lista != null ? lista : List.of();
+    }
+
+    /** Periodo YYYY-MM; si viene vacio se usa el mes en curso. */
+    public YearMonth resolvePeriod(String period) {
+        return parsePeriod(period);
     }
 
     private YearMonth parsePeriod(String period) {

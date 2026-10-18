@@ -1,6 +1,8 @@
 package com.cimaxis.demo.analytics.controller;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
@@ -21,9 +23,15 @@ import com.cimaxis.demo.analytics.dto.CampaignStatusReportDto;
 import com.cimaxis.demo.analytics.dto.ClientActivityDto;
 import com.cimaxis.demo.analytics.dto.ClientPlanDistributionDto;
 import com.cimaxis.demo.analytics.dto.InventoryAlertDto;
+import com.cimaxis.demo.analytics.dto.KpiComparisonDto;
+import com.cimaxis.demo.analytics.dto.KpiDetailDto;
+import com.cimaxis.demo.analytics.dto.KpiDetailItemDto;
 import com.cimaxis.demo.analytics.dto.KpiSnapshotDto;
+import com.cimaxis.demo.analytics.dto.ProjectAnalyticsDto;
 import com.cimaxis.demo.analytics.service.AnalyticsService;
 import com.cimaxis.demo.analytics.service.KpiCalculationService;
+import com.cimaxis.demo.analytics.service.KpiDetailService;
+import com.cimaxis.demo.analytics.service.KpiType;
 import com.cimaxis.demo.analytics.service.ReportExportService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,6 +46,7 @@ public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
     private final KpiCalculationService kpiCalculationService;
+    private final KpiDetailService kpiDetailService;
     private final ReportExportService reportExportService;
 
     @GetMapping("/summary")
@@ -119,6 +128,60 @@ public class AnalyticsController {
                                                               HttpServletRequest request) {
         String userId = (String) request.getAttribute("userId");
         return ResponseEntity.ok(kpiCalculationService.calculateAndStore(period, userId));
+    }
+
+    /** Registros que componen un KPI del periodo (los mismos que dan su numero). */
+    @GetMapping("/kpis/{kpi}/detail")
+    public ResponseEntity<KpiDetailDto> getKpiDetail(@PathVariable String kpi,
+                                                     @RequestParam(required = false) String period) {
+        return ResponseEntity.ok(kpiDetailService.getDetail(kpi, period));
+    }
+
+    /** Los ocho KPIs del periodo frente al mes anterior. */
+    @GetMapping("/kpis/compare")
+    public ResponseEntity<KpiComparisonDto> compareKpis(@RequestParam(required = false) String period) {
+        return ResponseEntity.ok(kpiDetailService.compare(period));
+    }
+
+    /** Proyectos de la proyeccion local con su cliente, filtrables por estado y cliente. */
+    @GetMapping("/projects")
+    public ResponseEntity<List<ProjectAnalyticsDto>> getProjects(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String clientId) {
+        return ResponseEntity.ok(kpiDetailService.getProjects(status, clientId));
+    }
+
+    /** Exporta el detalle de un KPI en Excel o PDF. */
+    @GetMapping("/export/kpis/{kpi}/detail")
+    public ResponseEntity<byte[]> exportKpiDetail(@PathVariable String kpi,
+                                                  @RequestParam(required = false) String period,
+                                                  @RequestParam(defaultValue = "xlsx") String format) {
+        KpiDetailDto detalle = kpiDetailService.getDetail(kpi, period);
+        String etiqueta = KpiType.fromKey(kpi).label();
+
+        List<String> headers = List.of("Elemento", "Detalle", "Fecha", "Valor", "Estado", "Cliente");
+        DateTimeFormatter fecha = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        List<List<Object>> rows = detalle.items().stream()
+                .map((KpiDetailItemDto item) -> Arrays.<Object>asList(
+                        item.title(),
+                        item.subtitle(),
+                        item.date() != null ? item.date().format(fecha) : "",
+                        item.value(),
+                        item.status(),
+                        item.clientName()))
+                .toList();
+
+        String archivo = "kpi-" + detalle.kpi() + "-" + detalle.period();
+        if ("pdf".equalsIgnoreCase(format)) {
+            return descarga(reportExportService.toPdf(
+                            etiqueta + " - " + detalle.period() + " (" + detalle.total() + " registros) - CIMAxis",
+                            headers, rows),
+                    archivo + ".pdf", MediaType.APPLICATION_PDF);
+        }
+        return descarga(reportExportService.toExcel("Detalle", headers, rows),
+                archivo + ".xlsx",
+                MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
     }
 
     @GetMapping("/export/kpis")

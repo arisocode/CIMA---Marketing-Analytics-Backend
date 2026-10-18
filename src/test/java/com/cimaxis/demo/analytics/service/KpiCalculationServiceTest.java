@@ -3,7 +3,7 @@ package com.cimaxis.demo.analytics.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyIterable;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +36,7 @@ import com.cimaxis.demo.analytics.repository.KpiSnapshotRepository;
 import com.cimaxis.demo.analytics.repository.ProjectRepository;
 import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
 import com.cimaxis.demo.marketing.domain.campaigns.Proposal;
+import com.cimaxis.demo.marketing.domain.interactions.MarketingInteraction;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
@@ -64,8 +65,13 @@ class KpiCalculationServiceTest {
     void setUp() {
         service = new KpiCalculationService(clientRepository, projectRepository, proposalRepository,
                 campaignRepository, interactionRepository, kpiSnapshotRepository, new KpiSnapshotMapper());
+        when(clientRepository.findByCreatedAtBetween(any(), any())).thenReturn(List.of());
         when(projectRepository.findByStatusInAndUpdatedAtBetween(any(), any(), any())).thenReturn(List.of());
-        when(proposalRepository.sumValueByStatusBetween(any(), any(), any())).thenReturn(BigDecimal.ZERO);
+        when(projectRepository.findByStatusIn(any())).thenReturn(List.of());
+        when(proposalRepository.findByStatusAndResponseDateBetween(any(), any(), any())).thenReturn(List.of());
+        when(campaignRepository.findActiveInPeriod(any(), any(), any())).thenReturn(List.of());
+        when(interactionRepository.findByContactDateBetween(any(), any())).thenReturn(List.of());
+        when(clientRepository.findAllById(anyIterable())).thenReturn(List.of());
     }
 
     // ---------------------------------------------------------------- periodo
@@ -93,7 +99,7 @@ class KpiCalculationServiceTest {
 
         ArgumentCaptor<LocalDateTime> desde = ArgumentCaptor.forClass(LocalDateTime.class);
         ArgumentCaptor<LocalDateTime> hasta = ArgumentCaptor.forClass(LocalDateTime.class);
-        verify(clientRepository).countByCreatedAtBetween(desde.capture(), hasta.capture());
+        verify(clientRepository).findByCreatedAtBetween(desde.capture(), hasta.capture());
         assertThat(desde.getValue()).isEqualTo(LocalDateTime.of(2026, 2, 1, 0, 0, 0));
         assertThat(hasta.getValue()).isEqualTo(LocalDateTime.of(2026, 2, 28, 23, 59, 59));
     }
@@ -103,7 +109,9 @@ class KpiCalculationServiceTest {
     @Test
     @DisplayName("KPI 1 - Clientes nuevos: cuenta los clientes creados en el mes")
     void clientesNuevos() {
-        when(clientRepository.countByCreatedAtBetween(any(), any())).thenReturn(4L);
+        when(clientRepository.findByCreatedAtBetween(any(), any())).thenReturn(List.of(
+                clienteCreado("c-1", null), clienteCreado("c-2", null),
+                clienteCreado("c-3", null), clienteCreado("c-4", null)));
 
         assertThat(service.calculate(FEBRERO).getNewClients()).isEqualTo(4);
     }
@@ -120,20 +128,21 @@ class KpiCalculationServiceTest {
     @Test
     @DisplayName("KPI 3 - Ingresos: suma solo propuestas aprobadas con respuesta en el mes")
     void ingresosDePropuestasAprobadas() {
-        when(proposalRepository.sumValueByStatusBetween(any(), any(), any()))
-                .thenReturn(new BigDecimal("5400000"));
+        when(proposalRepository.findByStatusAndResponseDateBetween(any(), any(), any()))
+                .thenReturn(List.of(propuesta(1, "3600000"), propuesta(2, "1800000")));
 
         KpiSnapshotDto kpis = service.calculate(FEBRERO);
 
         assertThat(kpis.getEstimatedRevenue()).isEqualByComparingTo("5400000");
-        verify(proposalRepository).sumValueByStatusBetween(Proposal.ProposalStatus.Approved,
+        verify(proposalRepository).findByStatusAndResponseDateBetween(Proposal.ProposalStatus.Approved,
                 LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28));
     }
 
     @Test
-    @DisplayName("KPI 3 - Ingresos: si no hay aprobadas el valor es cero, no nulo")
+    @DisplayName("KPI 3 - Ingresos: si no hay aprobadas (o no tienen valor) el valor es cero, no nulo")
     void ingresosSinAprobadasEsCero() {
-        when(proposalRepository.sumValueByStatusBetween(any(), any(), any())).thenReturn(null);
+        when(proposalRepository.findByStatusAndResponseDateBetween(any(), any(), any()))
+                .thenReturn(List.of(propuesta(1, null)));
 
         assertThat(service.calculate(FEBRERO).getEstimatedRevenue()).isEqualByComparingTo("0");
     }
@@ -143,8 +152,8 @@ class KpiCalculationServiceTest {
     @Test
     @DisplayName("KPI 4 - Campanas activas: cuenta las campanas en estado Active vigentes en el mes")
     void campanasActivas() {
-        when(campaignRepository.countActiveInPeriod(eq(Campaign.CampaignStatus.Active), any(), any()))
-                .thenReturn(3L);
+        when(campaignRepository.findActiveInPeriod(eq(Campaign.CampaignStatus.Active), any(), any()))
+                .thenReturn(List.of(campana(1), campana(2), campana(3)));
 
         assertThat(service.calculate(FEBRERO).getActiveCampaigns()).isEqualTo(3);
     }
@@ -152,16 +161,27 @@ class KpiCalculationServiceTest {
     @Test
     @DisplayName("KPI 5 - Clientes contactados: cuenta clientes distintos con interaccion en el mes")
     void clientesContactados() {
-        when(interactionRepository.countDistinctClientsContactedBetween(any(), any())).thenReturn(8L);
+        when(interactionRepository.findByContactDateBetween(any(), any())).thenReturn(List.of(
+                interaccion("c-1", MarketingInteraction.InteractionType.message, null),
+                interaccion("c-1", MarketingInteraction.InteractionType.message, null),
+                interaccion("c-2", MarketingInteraction.InteractionType.no_response, null)));
 
-        assertThat(service.calculate(FEBRERO).getClientsContacted()).isEqualTo(8);
+        assertThat(service.calculate(FEBRERO).getClientsContacted()).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("KPI 6 - Tasa de respuesta: respuestas / contactados x 100 con dos decimales")
+    @DisplayName("KPI 6 - Tasa de respuesta: clientes que respondieron / contactados x 100, nunca mas de 100")
     void tasaDeRespuesta() {
-        when(interactionRepository.countDistinctClientsContactedBetween(any(), any())).thenReturn(8L);
-        when(interactionRepository.countResponsesBetween(any(), any(), anyList())).thenReturn(3L);
+        List<MarketingInteraction> interacciones = new java.util.ArrayList<>();
+        for (int i = 1; i <= 8; i++) {
+            interacciones.add(interaccion("c-" + i, MarketingInteraction.InteractionType.message, null));
+        }
+        // c-1 responde dos veces (cuenta una), c-2 por tipo, c-3 por texto de respuesta.
+        interacciones.add(interaccion("c-1", MarketingInteraction.InteractionType.inquiry, null));
+        interacciones.add(interaccion("c-1", MarketingInteraction.InteractionType.purchase, null));
+        interacciones.add(interaccion("c-2", MarketingInteraction.InteractionType.click, null));
+        interacciones.add(interaccion("c-3", MarketingInteraction.InteractionType.message, "Me interesa"));
+        when(interactionRepository.findByContactDateBetween(any(), any())).thenReturn(interacciones);
 
         assertThat(service.calculate(FEBRERO).getResponseRate()).isEqualByComparingTo("37.50");
     }
@@ -169,8 +189,6 @@ class KpiCalculationServiceTest {
     @Test
     @DisplayName("KPI 6 - Tasa de respuesta: sin clientes contactados es cero (sin dividir por cero)")
     void tasaDeRespuestaSinContactadosEsCero() {
-        when(interactionRepository.countResponsesBetween(any(), any(), anyList())).thenReturn(5L);
-
         assertThat(service.calculate(FEBRERO).getResponseRate()).isEqualByComparingTo("0");
     }
 
@@ -184,8 +202,9 @@ class KpiCalculationServiceTest {
                 proyecto("p-1", "c-1", cierre),
                 proyecto("p-2", "c-2", cierre),
                 proyecto("p-3", null, cierre)));
-        when(clientRepository.findById("c-1")).thenReturn(Optional.of(clienteCreado("c-1", cierre.minusDays(10))));
-        when(clientRepository.findById("c-2")).thenReturn(Optional.of(clienteCreado("c-2", cierre.minusDays(20))));
+        when(clientRepository.findAllById(anyIterable())).thenReturn(List.of(
+                clienteCreado("c-1", cierre.minusDays(10)),
+                clienteCreado("c-2", cierre.minusDays(20))));
 
         assertThat(service.calculate(FEBRERO).getAvgCloseDays()).isEqualByComparingTo("15.00");
     }
@@ -194,12 +213,14 @@ class KpiCalculationServiceTest {
     @DisplayName("KPI 8 - Proyectos en curso: incluye el estado canonico in_progress de colaboracion")
     @SuppressWarnings("unchecked")
     void proyectosEnCursoIncluyeEstadoCanonico() {
-        when(projectRepository.countByStatusIn(any())).thenReturn(6L);
+        when(projectRepository.findByStatusIn(any())).thenReturn(List.of(
+                proyecto("p-1", null, null), proyecto("p-2", null, null), proyecto("p-3", null, null),
+                proyecto("p-4", null, null), proyecto("p-5", null, null), proyecto("p-6", null, null)));
 
         KpiSnapshotDto kpis = service.calculate(FEBRERO);
 
         ArgumentCaptor<Collection<String>> estados = ArgumentCaptor.forClass(Collection.class);
-        verify(projectRepository).countByStatusIn(estados.capture());
+        verify(projectRepository).findByStatusIn(estados.capture());
         assertThat(estados.getValue()).contains("in_progress", "in_review");
         assertThat(kpis.getProjectsInProgress()).isEqualTo(6);
     }
@@ -212,7 +233,9 @@ class KpiCalculationServiceTest {
         KpiSnapshot existente = KpiSnapshot.builder().snapshotsId(11).period(FEBRERO).newClients(1).build();
         when(kpiSnapshotRepository.findByPeriod(FEBRERO)).thenReturn(Optional.of(existente));
         when(kpiSnapshotRepository.save(any(KpiSnapshot.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(clientRepository.countByCreatedAtBetween(any(), any())).thenReturn(4L);
+        when(clientRepository.findByCreatedAtBetween(any(), any())).thenReturn(List.of(
+                clienteCreado("c-1", null), clienteCreado("c-2", null),
+                clienteCreado("c-3", null), clienteCreado("c-4", null)));
 
         KpiSnapshotDto guardado = service.calculateAndStore(FEBRERO, "gerente-sub");
 
@@ -231,5 +254,25 @@ class KpiCalculationServiceTest {
 
     private static Client clienteCreado(String id, LocalDateTime createdAt) {
         return Client.builder().clientId(id).userId(id).createdAt(createdAt).build();
+    }
+
+    private static Proposal propuesta(int id, String valor) {
+        return Proposal.builder().proposalId(id).clientId("c-" + id)
+                .status(Proposal.ProposalStatus.Approved)
+                .estimatedValue(valor != null ? new BigDecimal(valor) : null)
+                .responseDate(LocalDate.of(2026, 2, 10)).build();
+    }
+
+    private static Campaign campana(int id) {
+        return Campaign.builder().campaignId(id).campaignName("Campana " + id).clientId("c-" + id)
+                .status(Campaign.CampaignStatus.Active).build();
+    }
+
+    private static MarketingInteraction interaccion(String clientId,
+                                                    MarketingInteraction.InteractionType tipo,
+                                                    String respuesta) {
+        return MarketingInteraction.builder().clientId(clientId).campaignId(1)
+                .interactionType(tipo).response(respuesta)
+                .contactDate(LocalDateTime.of(2026, 2, 5, 9, 0)).build();
     }
 }

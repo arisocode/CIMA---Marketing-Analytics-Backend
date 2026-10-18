@@ -1,6 +1,6 @@
 {
   "service": "marketing",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "endpoints": [
     {
       "endpoint": "/api/v1/marketing/campaigns",
@@ -408,6 +408,44 @@
       "method": "POST",
       "backend_url": "/api/v1/analytics/kpis/calculate/{period}",
       "openapi_ref": "POST /api/analytics/kpis/calculate/{period}"
+    },
+    {
+      "endpoint": "/api/v1/analytics/kpis/{kpi}/detail",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/kpis/{kpi}/detail",
+      "openapi_ref": "GET /api/analytics/kpis/{kpi}/detail",
+      "input_query_strings": [
+        "period"
+      ]
+    },
+    {
+      "endpoint": "/api/v1/analytics/kpis/compare",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/kpis/compare",
+      "openapi_ref": "GET /api/analytics/kpis/compare",
+      "input_query_strings": [
+        "period"
+      ]
+    },
+    {
+      "endpoint": "/api/v1/analytics/projects",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/projects",
+      "openapi_ref": "GET /api/analytics/projects",
+      "input_query_strings": [
+        "status",
+        "clientId"
+      ]
+    },
+    {
+      "endpoint": "/api/v1/analytics/export/kpis/{kpi}/detail",
+      "method": "GET",
+      "backend_url": "/api/v1/analytics/export/kpis/{kpi}/detail",
+      "openapi_ref": "GET /api/analytics/export/kpis/{kpi}/detail",
+      "input_query_strings": [
+        "period",
+        "format"
+      ]
     }
   ]
 }

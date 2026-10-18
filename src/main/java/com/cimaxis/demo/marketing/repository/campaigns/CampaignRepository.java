@@ -30,4 +30,13 @@ public interface CampaignRepository extends JpaRepository<Campaign, Integer> {
     long countActiveInPeriod(@Param("status") Campaign.CampaignStatus status,
                              @Param("from") LocalDate from,
                              @Param("to") LocalDate to);
+
+    /** Mismo criterio que countActiveInPeriod, devolviendo las campañas (detalle del KPI). */
+    @Query("SELECT c FROM Campaign c "
+            + "WHERE c.status = :status "
+            + "AND c.startDate <= :to "
+            + "AND (c.endDate IS NULL OR c.endDate >= :from)")
+    List<Campaign> findActiveInPeriod(@Param("status") Campaign.CampaignStatus status,
+                                      @Param("from") LocalDate from,
+                                      @Param("to") LocalDate to);
 }

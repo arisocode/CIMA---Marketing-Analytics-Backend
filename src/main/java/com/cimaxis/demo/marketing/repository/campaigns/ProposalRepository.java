@@ -30,6 +30,10 @@ public interface ProposalRepository extends JpaRepository<Proposal, Integer> {
                                        @Param("from") LocalDate from,
                                        @Param("to") LocalDate to);
 
+    /** Propuestas en un estado con fecha de respuesta dentro del rango (detalle del KPI de ingresos). */
+    List<Proposal> findByStatusAndResponseDateBetween(Proposal.ProposalStatus status,
+                                                      LocalDate from, LocalDate to);
+
     long countByStatusAndResponseDateBetween(Proposal.ProposalStatus status, LocalDate from, LocalDate to);
 
     long countByCreatedDateBetween(LocalDate from, LocalDate to);
