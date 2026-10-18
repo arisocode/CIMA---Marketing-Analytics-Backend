@@ -11,13 +11,6 @@ import com.cimaxis.demo.analytics.domain.Project;
 import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
 import com.cimaxis.demo.marketing.domain.campaigns.Proposal;
 
-/**
- * Registros que componen los ocho KPIs de un periodo.
- *
- * Es la unica fuente de verdad: el numero de cada KPI se deriva de estas listas
- * (tamano, suma o promedio) y el detalle de cada KPI lista exactamente los mismos
- * registros. Asi el total del detalle siempre coincide con la tarjeta.
- */
 public record KpiSelection(
         YearMonth period,
         List<Client> newClients,

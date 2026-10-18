@@ -3,9 +3,6 @@ package com.cimaxis.demo.analytics.service;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-/**
- * Los ocho KPIs del modulo, con la clave que usa la API y la etiqueta para reportes.
- */
 public enum KpiType {
     NEW_CLIENTS("new_clients", "Clientes nuevos"),
     CLOSED_PROJECTS("closed_projects", "Proyectos cerrados"),

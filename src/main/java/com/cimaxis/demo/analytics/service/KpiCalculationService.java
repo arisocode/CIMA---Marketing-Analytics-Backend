@@ -127,10 +127,6 @@ public class KpiCalculationService {
         return toSnapshot(select(period));
     }
 
-    /**
-     * Reune los registros que componen cada KPI del periodo. Es la base comun del
-     * calculo de KPIs y de su detalle (KpiDetailService), para que ambos coincidan.
-     */
     public KpiSelection select(String period) {
         YearMonth ym = resolvePeriod(period);
         LocalDateTime desde = ym.atDay(1).atStartOfDay();
@@ -181,17 +177,12 @@ public class KpiCalculationService {
                 .build();
     }
 
-    /** Una interaccion cuenta como respuesta si trae texto de respuesta o es de un tipo de respuesta. */
     public static boolean esRespuesta(MarketingInteraction interaction) {
         return interaction.getResponse() != null
                 || (interaction.getInteractionType() != null
                     && TIPOS_RESPUESTA.contains(interaction.getInteractionType()));
     }
 
-    /**
-     * Agrupa las interacciones por cliente (ultima fecha y cantidad). Con soloRespuestas
-     * considera unicamente las interacciones que cuentan como respuesta.
-     */
     private List<KpiSelection.ClientContact> resumirPorCliente(List<MarketingInteraction> interacciones,
                                                                boolean soloRespuestas) {
         Map<String, LocalDateTime> ultima = new LinkedHashMap<>();

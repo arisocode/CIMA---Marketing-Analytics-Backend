@@ -41,11 +41,6 @@ import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
 
-/**
- * Detalle de KPIs, comparacion mensual y listado de proyectos. El escenario carga
- * datos para los ocho KPIs a la vez y verifica que el detalle de cada uno cuadre
- * con el numero que muestra la tarjeta.
- */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class KpiDetailServiceTest {
@@ -196,8 +191,6 @@ class KpiDetailServiceTest {
         assertThat(dto.period()).isEqualTo(java.time.YearMonth.now().toString());
     }
 
-    // ---------------------------------------------------------------- comparacion
-
     @Test
     @DisplayName("Comparacion: usa el snapshot guardado del mes anterior y calcula la variacion")
     void comparaContraSnapshotDelMesAnterior() {
@@ -227,8 +220,6 @@ class KpiDetailServiceTest {
                 .isEqualByComparingTo("33.33");
     }
 
-    // ---------------------------------------------------------------- proyectos
-
     @Test
     @DisplayName("Proyectos: filtra por estado sin distinguir mayusculas y suma lo aprobado del cliente")
     void proyectosFiltradosConValorAprobado() {
@@ -249,8 +240,6 @@ class KpiDetailServiceTest {
         assertThat(service.getProjects(null, "c-1")).extracting(ProjectAnalyticsDto::projectId)
                 .containsExactly("p-1");
     }
-
-    // ---------------------------------------------------------------- utilidades
 
     private KpiDetailDto detalle(String kpi) {
         return service.getDetail(kpi, OCTUBRE);

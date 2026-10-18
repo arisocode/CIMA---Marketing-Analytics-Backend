@@ -29,13 +29,6 @@ import com.cimaxis.demo.analytics.repository.ProjectRepository;
 import com.cimaxis.demo.marketing.domain.campaigns.Proposal;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 
-/**
- * Detalle de cada KPI (que registros lo componen), comparacion contra el mes
- * anterior y listado de proyectos para Analitica.
- *
- * El detalle se arma desde KpiCalculationService.select(period), la misma seleccion
- * que produce el numero del KPI, de modo que ambos coinciden siempre.
- */
 @Service
 public class KpiDetailService {
 
@@ -61,10 +54,6 @@ public class KpiDetailService {
         this.kpiSnapshotRepository = kpiSnapshotRepository;
         this.kpiSnapshotMapper = kpiSnapshotMapper;
     }
-
-    // ------------------------------------------------------------------
-    // Detalle de un KPI
-    // ------------------------------------------------------------------
 
     public KpiDetailDto getDetail(String kpiKey, String period) {
         KpiType kpi = KpiType.fromKey(kpiKey);
@@ -121,7 +110,6 @@ public class KpiDetailService {
                 items.size(), valorKpi(kpi, seleccion), items);
     }
 
-    /** Valor que muestra la tarjeta del KPI, derivado de la misma seleccion. */
     static BigDecimal valorKpi(KpiType kpi, KpiSelection seleccion) {
         return switch (kpi) {
             case NEW_CLIENTS -> BigDecimal.valueOf(seleccion.newClients().size());
@@ -135,15 +123,6 @@ public class KpiDetailService {
         };
     }
 
-    // ------------------------------------------------------------------
-    // Comparacion contra el mes anterior
-    // ------------------------------------------------------------------
-
-    /**
-     * El periodo pedido se calcula en vivo. El anterior usa su snapshot guardado si
-     * existe (conserva valores que son foto del momento, como proyectos en curso) y,
-     * si no, se calcula en vivo.
-     */
     public KpiComparisonDto compare(String period) {
         YearMonth actual = kpiCalculationService.resolvePeriod(period);
         YearMonth anterior = actual.minusMonths(1);
@@ -188,11 +167,6 @@ public class KpiDetailService {
         };
     }
 
-    // ------------------------------------------------------------------
-    // Proyectos
-    // ------------------------------------------------------------------
-
-    /** Proyectos de la proyeccion local, filtrables por estado y cliente. */
     public List<ProjectAnalyticsDto> getProjects(String status, String clientId) {
         List<Project> proyectos = projectRepository.findAll().stream()
                 .filter(p -> status == null || status.isBlank()
@@ -226,10 +200,6 @@ public class KpiDetailService {
                                 : BigDecimal.ZERO))
                 .toList();
     }
-
-    // ------------------------------------------------------------------
-    // Utilidades
-    // ------------------------------------------------------------------
 
     private List<KpiDetailItemDto> itemsContacto(List<KpiSelection.ClientContact> contactos,
                                                  Map<String, Client> clientes, String unidad) {
@@ -285,10 +255,6 @@ public class KpiDetailService {
         return clientes;
     }
 
-    /**
-     * Nombre visible del cliente: el que trajo la sincronizacion con el CRM
-     * (additionalInfo), su correo o, en ultimo caso, su identificador.
-     */
     static String nombreCliente(Client client, String fallbackId) {
         if (client != null) {
             if (client.getAdditionalInfo() != null && !client.getAdditionalInfo().isBlank()) {
