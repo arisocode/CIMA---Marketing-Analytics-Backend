@@ -112,6 +112,19 @@ Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:280
 | `GET` | `/api/v1/analytics/export/kpis` | `/api/v1/analytics/export/kpis` | Exportación CSV/Excel de KPIs. |
 | `GET` | `/api/v1/analytics/export/campaigns` | `/api/v1/analytics/export/campaigns` | Exportación de métricas de campañas. |
 | `GET` | `/api/v1/analytics/export/low-stock` | `/api/v1/analytics/export/low-stock` | Exportación de reporte de inventario bajo. |
+| `GET` | `/api/v1/analytics/kpis/{kpi}/detail?period=` | `/api/v1/analytics/kpis/{kpi}/detail` | Registros que componen un KPI del período (por defecto el mes actual). |
+| `GET` | `/api/v1/analytics/kpis/compare?period=` | `/api/v1/analytics/kpis/compare` | Los ocho KPIs del período frente al mes anterior (`deltaPercent` es `null` si el anterior es 0). |
+| `GET` | `/api/v1/analytics/projects?status=&clientId=` | `/api/v1/analytics/projects` | Proyectos de la proyección local con su cliente y el valor aprobado del cliente. |
+| `GET` | `/api/v1/analytics/export/kpis/{kpi}/detail?period=&format=` | `/api/v1/analytics/export/kpis/{kpi}/detail` | Exporta el detalle de un KPI en `xlsx` o `pdf`. |
+
+**Detalle de KPIs.** `{kpi}` ∈ `new_clients`, `closed_projects`, `revenue`, `active_campaigns`, `clients_contacted`, `response_rate`, `avg_close_days`, `projects_in_progress`. La respuesta es `{ kpi, period, total, kpiValue, items: [{ id, title, subtitle, date, value, status, clientId, clientName }] }`:
+- `total` es el número de registros listados y `kpiValue` es el valor de la tarjeta.
+- En los KPI de conteo los dos coinciden.
+- En `revenue`, `kpiValue` es la suma de `value`.
+- En `response_rate`, `kpiValue` es `total` entre los clientes contactados × 100.
+- En `avg_close_days`, `kpiValue` es el promedio de `value`.
+
+El detalle y el KPI salen de la misma selección (`KpiCalculationService.select`), así que siempre coinciden.
 
 ---
 
