@@ -27,7 +27,7 @@ public class CrmIntegrationService {
         try {
             return crmClientClient.getClients(bearerToken);
         } catch (Exception e) {
-            throw new RuntimeException("Error al obtener clientes del CRM: " + e.getMessage());
+            throw new RuntimeException("Error al obtener clientes del CRM: " + describir(e), e);
         }
     }
 
@@ -35,8 +35,13 @@ public class CrmIntegrationService {
         try {
             return crmProjectClient.getProjects(bearerToken);
         } catch (Exception e) {
-            throw new RuntimeException("Error al obtener proyectos del CRM: " + e.getMessage());
+            throw new RuntimeException("Error al obtener proyectos del CRM: " + describir(e), e);
         }
+    }
+
+    /** Mensaje util aunque la excepcion no traiga texto (por ejemplo, NullPointerException). */
+    private static String describir(Exception e) {
+        return e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
     }
 
     public String extractClientId(Map<String, Object> client) {

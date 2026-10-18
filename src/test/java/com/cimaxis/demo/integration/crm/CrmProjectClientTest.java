@@ -12,6 +12,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -78,5 +79,36 @@ class CrmProjectClientTest {
         assertThatThrownBy(() -> client.getProjects("test-token"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Contrato inválido de Collab");
+    }
+
+    @Test
+    @DisplayName("Conserva los proyectos que traen campos opcionales nulos (description, fileRepositoryUrl)")
+    void conservaProyectosConCamposNulos() {
+        Map<String, Object> proyecto = new HashMap<>();
+        proyecto.put("id", "p-1");
+        proyecto.put("name", "Muebles Prim");
+        proyecto.put("clientSub", "c-1");
+        proyecto.put("status", "completed");
+        proyecto.put("description", null);
+        proyecto.put("fileRepositoryUrl", null);
+
+        when(restTemplate.exchange(
+                contains("page=1"),
+                eq(HttpMethod.GET),
+                ArgumentMatchers.<HttpEntity<Void>>any(),
+                eq(Map.class)
+        )).thenReturn(ResponseEntity.ok(Map.of("data", Map.of(
+                "items", List.of(proyecto),
+                "total_pages", 1
+        ))));
+
+        List<Map<String, Object>> projects = client.getProjects("test-token");
+
+        assertThat(projects).hasSize(1);
+        assertThat(projects.get(0))
+                .containsEntry("status", "completed")
+                .containsEntry("clientSub", "c-1")
+                .containsKey("description");
+        assertThat(projects.get(0).get("description")).isNull();
     }
 }
