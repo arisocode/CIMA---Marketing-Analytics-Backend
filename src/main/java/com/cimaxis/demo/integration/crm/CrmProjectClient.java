@@ -9,9 +9,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 public class CrmProjectClient {
@@ -58,12 +58,22 @@ public class CrmProjectClient {
         if (items instanceof List<?> rows) {
             for (Object row : rows) {
                 if (row instanceof Map<?, ?> raw) {
-                    projects.add(raw.entrySet().stream().collect(Collectors.toMap(
-                            entry -> String.valueOf(entry.getKey()), Map.Entry::getValue)));
+                    projects.add(toStringKeyMap(raw));
                 }
             }
         }
         Object totalPagesValue = dataMap.get("total_pages");
         return totalPagesValue instanceof Number number ? number.intValue() : currentPage;
+    }
+
+    /**
+     * Copia la fila de Collab conservando los valores nulos. Collectors.toMap no
+     * admite valores nulos (lanza NullPointerException sin mensaje), y los proyectos
+     * de Collab traen campos opcionales vacios como description o fileRepositoryUrl.
+     */
+    private static Map<String, Object> toStringKeyMap(Map<?, ?> raw) {
+        Map<String, Object> copy = new LinkedHashMap<>();
+        raw.forEach((key, value) -> copy.put(String.valueOf(key), value));
+        return copy;
     }
 }
