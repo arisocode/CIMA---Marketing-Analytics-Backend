@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,7 @@ import com.cimaxis.demo.marketing.domain.campaigns.Proposal;
 import com.cimaxis.demo.marketing.domain.interactions.MarketingInteraction;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
+import com.cimaxis.demo.marketing.service.plans.MarketingPlanService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,12 +32,14 @@ public class ClientSegmentationService {
     private final ProjectRepository projectRepository;
     private final MarketingInteractionRepository interactionRepository;
     private final ProposalRepository proposalRepository;
+    private final MarketingPlanService planService;
 
     public List<Client> segment(SegmentCriteria criteria) {
         List<Client> resultado = new ArrayList<>();
+        Set<String> planes = planesDelCriterio(criteria);
 
         for (Client client : clientRepository.findAll()) {
-            if (!cumplePlan(client, criteria)) continue;
+            if (!cumplePlan(client, planes)) continue;
             if (!cumpleProyectos(client, criteria)) continue;
             if (!cumpleInteracciones(client, criteria)) continue;
             if (!cumpleSinContacto(client, criteria)) continue;
@@ -48,11 +53,23 @@ public class ClientSegmentationService {
         return segment(criteria).stream().map(Client::getClientId).toList();
     }
 
-    private boolean cumplePlan(Client client, SegmentCriteria criteria) {
-        if (criteria.getPlans() == null || criteria.getPlans().isEmpty()) return true;
-        if (client.getPlan() == null) return false;
+    /**
+     * Planes pedidos, validados contra marketing_plans (activos o inactivos) y
+     * normalizados a minusculas. null si el criterio no filtra por plan.
+     */
+    private Set<String> planesDelCriterio(SegmentCriteria criteria) {
+        if (criteria.getPlans() == null || criteria.getPlans().isEmpty()) return null;
         return criteria.getPlans().stream()
-                .anyMatch(p -> p.equalsIgnoreCase(client.getPlan().name()));
+                .filter(p -> p != null && !p.isBlank())
+                .map(planService::requireExisting)
+                .map(MarketingPlanService::clave)
+                .collect(Collectors.toSet());
+    }
+
+    private boolean cumplePlan(Client client, Set<String> planes) {
+        if (planes == null || planes.isEmpty()) return true;
+        if (client.getPlan() == null) return false;
+        return planes.contains(MarketingPlanService.clave(client.getPlan()));
     }
 
     private boolean cumpleProyectos(Client client, SegmentCriteria criteria) {

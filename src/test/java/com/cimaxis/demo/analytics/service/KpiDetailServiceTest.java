@@ -58,8 +58,8 @@ class KpiDetailServiceTest {
     private KpiCalculationService kpiCalculationService;
     private KpiDetailService service;
 
-    private final Client ana = cliente("c-1", "Muebles Prim", Client.Plan.Oro, CIERRE.minusDays(19));
-    private final Client luis = cliente("c-2", "Petal Restore", Client.Plan.Diamante, CIERRE.minusDays(40));
+    private final Client ana = cliente("c-1", "Muebles Prim", "Oro", CIERRE.minusDays(19));
+    private final Client luis = cliente("c-2", "Petal Restore", "Diamante", CIERRE.minusDays(40));
     private final Client sinNombre = cliente("c-3", null, null, null);
 
     @BeforeEach
@@ -254,7 +254,7 @@ class KpiDetailServiceTest {
         return dto.kpis().stream().filter(d -> d.kpi().equals(kpi)).findFirst().orElseThrow();
     }
 
-    private static Client cliente(String id, String nombre, Client.Plan plan, LocalDateTime createdAt) {
+    private static Client cliente(String id, String nombre, String plan, LocalDateTime createdAt) {
         return Client.builder().clientId(id).userId(id).additionalInfo(nombre)
                 .plan(plan).createdAt(createdAt).build();
     }

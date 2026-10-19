@@ -39,6 +39,11 @@ Este documento describe el modelo relacional en PostgreSQL, la configuración de
 - **`PROPOSALS`**: Propuestas comerciales, montos cotizados y estados de aprobación.
 - **`INTERACTIONS`**: Historial de comunicaciones comerciales con clientes.
 - **`KPI_SNAPSHOTS`**: Registros temporales inmutables con agregaciones numéricas precalculadas.
+- **`MARKETING_PLANS`**: Catálogo configurable de planes (nombre único, color, orden, activo). `clients.plan` guarda el nombre del plan como texto, sin CHECK.
+- **`MARKETING_MESSAGE_TEMPLATES`**: Plantillas de mensajes por canal (EMAIL, WHATSAPP, IN_APP) y plan opcional, con variables `{nombre}`, `{plan}`, `{empresa}`.
+- **`MARKETING_EMAIL_DELIVERIES`**: Registro de cada intento de correo (QUEUED, FAILED, SIMULATED, SKIPPED_LIMIT); con él se calcula el cupo diario (zona America/Bogota).
+- Columnas nuevas: `marketing_interactions.delivery_status`, `marketing_interactions.delivery_error` y `workflows.template_id`.
+- Migración manual: `scripts/2026-10-19-planes-correos-plantillas.sql` (quita el CHECK de `clients.plan` y registra planes heredados como inactivos).
 
 ---
 

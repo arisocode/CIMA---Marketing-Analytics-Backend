@@ -11,17 +11,20 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cimaxis.demo.analytics.domain.Client;
 import com.cimaxis.demo.analytics.repository.ClientRepository;
 import com.cimaxis.demo.config.ResourceNotFoundException;
+import com.cimaxis.demo.marketing.service.plans.MarketingPlanService;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * Gestion del plan comercial de los clientes.
+ * Gestion del plan comercial de los clientes. Los planes validos salen de la
+ * tabla marketing_plans (MarketingPlanService); un plan inactivo no se asigna.
  */
 @Service
 @RequiredArgsConstructor
 public class ClientPlanService {
 
     private final ClientRepository clientRepository;
+    private final MarketingPlanService planService;
 
     public List<Client> findAll() {
         return clientRepository.findAll();
@@ -33,7 +36,7 @@ public class ClientPlanService {
     }
 
     public List<Client> findByPlan(String plan) {
-        return clientRepository.findByPlan(parsePlan(plan));
+        return clientRepository.findByPlanIgnoreCase(planService.requireExisting(plan));
     }
 
     /** Clientes sincronizados que aun no tienen plan asignado. */
@@ -46,7 +49,7 @@ public class ClientPlanService {
     @Transactional
     public Client assignPlan(String clientId, String plan) {
         Client client = findById(clientId);
-        client.setPlan(plan == null || plan.isBlank() ? null : parsePlan(plan));
+        client.setPlan(plan == null || plan.isBlank() ? null : planService.requireAssignable(plan));
         client.setUpdatedAt(LocalDateTime.now());
         return clientRepository.save(client);
     }
@@ -77,17 +80,4 @@ public class ClientPlanService {
         return resultado;
     }
 
-    private Client.Plan parsePlan(String valor) {
-        if (valor == null || valor.isBlank()) {
-            throw new IllegalArgumentException("El plan es obligatorio");
-        }
-        for (Client.Plan plan : Client.Plan.values()) {
-            if (plan.name().equalsIgnoreCase(valor.trim())) {
-                return plan;
-            }
-        }
-        throw new IllegalArgumentException(
-                "Plan invalido: " + valor + ". Valores permitidos: "
-                        + java.util.Arrays.toString(Client.Plan.values()));
-    }
 }

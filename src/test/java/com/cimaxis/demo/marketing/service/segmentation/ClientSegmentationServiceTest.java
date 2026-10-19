@@ -1,7 +1,9 @@
 package com.cimaxis.demo.marketing.service.segmentation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -24,6 +26,7 @@ import com.cimaxis.demo.marketing.domain.campaigns.Proposal;
 import com.cimaxis.demo.marketing.domain.interactions.MarketingInteraction;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
+import com.cimaxis.demo.marketing.service.plans.MarketingPlanService;
 
 /**
  * Segmentacion de clientes (RF-11). Los criterios se combinan con conjuncion
@@ -37,11 +40,12 @@ class ClientSegmentationServiceTest {
     @Mock private ProjectRepository projectRepository;
     @Mock private MarketingInteractionRepository interactionRepository;
     @Mock private ProposalRepository proposalRepository;
+    @Mock private MarketingPlanService planService;
 
     @InjectMocks private ClientSegmentationService service;
 
-    private final Client oro = cliente("c-oro", Client.Plan.Oro);
-    private final Client diamante = cliente("c-diamante", Client.Plan.Diamante);
+    private final Client oro = cliente("c-oro", "Oro");
+    private final Client diamante = cliente("c-diamante", "Diamante");
     private final Client sinPlan = cliente("c-sin-plan", null);
 
     @BeforeEach
@@ -52,6 +56,14 @@ class ClientSegmentationServiceTest {
         when(interactionRepository.findByClientId(anyString())).thenReturn(List.of());
         when(interactionRepository.findTopByClientIdOrderByContactDateDesc(anyString())).thenReturn(null);
         when(proposalRepository.findByClientId(anyString())).thenReturn(List.of());
+        // Catalogo de planes: Platinum, Oro y Diamante (devuelve el nombre canonico).
+        when(planService.requireExisting(anyString())).thenAnswer(inv -> {
+            String valor = ((String) inv.getArgument(0)).trim();
+            for (String plan : List.of("Platinum", "Oro", "Diamante")) {
+                if (plan.equalsIgnoreCase(valor)) return plan;
+            }
+            throw new IllegalArgumentException("Plan inválido: " + valor);
+        });
     }
 
     @Test
@@ -82,6 +94,27 @@ class ClientSegmentationServiceTest {
         SegmentCriteria criterio = SegmentCriteria.builder().plans(List.of("Platinum")).build();
 
         assertThat(ids(criterio)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Un plan que no existe en el catalogo se rechaza")
+    void planDesconocidoSeRechaza() {
+        SegmentCriteria criterio = SegmentCriteria.builder().plans(List.of("Bronce")).build();
+
+        assertThatThrownBy(() -> service.segment(criterio))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Bronce");
+    }
+
+    @Test
+    @DisplayName("Un plan creado por CIMA (fuera de la lista historica) tambien filtra")
+    void planNuevoDelCatalogoFiltra() {
+        Client bronce = cliente("c-bronce", "Bronce");
+        when(clientRepository.findAll()).thenReturn(List.of(oro, bronce));
+        doReturn("Bronce").when(planService).requireExisting("Bronce");
+        SegmentCriteria criterio = SegmentCriteria.builder().plans(List.of("Bronce")).build();
+
+        assertThat(ids(criterio)).containsExactly("c-bronce");
     }
 
     @Test
@@ -147,7 +180,7 @@ class ClientSegmentationServiceTest {
     @Test
     @DisplayName("Los criterios se combinan con Y logico: plan Oro y sin proyectos")
     void criteriosSeCombinanConYLogico() {
-        Client oroConProyecto = cliente("c-oro-2", Client.Plan.Oro);
+        Client oroConProyecto = cliente("c-oro-2", "Oro");
         when(clientRepository.findAll()).thenReturn(List.of(oro, oroConProyecto, diamante));
         when(projectRepository.countByClientId("c-oro-2")).thenReturn(1L);
         SegmentCriteria criterio = SegmentCriteria.builder()
@@ -170,7 +203,7 @@ class ClientSegmentationServiceTest {
         return service.segment(criterio).stream().map(Client::getClientId).toList();
     }
 
-    private static Client cliente(String id, Client.Plan plan) {
+    private static Client cliente(String id, String plan) {
         return Client.builder().clientId(id).userId(id).plan(plan).build();
     }
 
