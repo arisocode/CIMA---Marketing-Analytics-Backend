@@ -13,6 +13,7 @@ import com.cimaxis.demo.marketing.dto.workflows.WorkflowResponse;
 import com.cimaxis.demo.marketing.mapper.workflows.WorkflowMapper;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
 import com.cimaxis.demo.marketing.repository.workflows.WorkflowRepository;
+import com.cimaxis.demo.marketing.service.templates.MessageTemplateService;
 
 /**
  * Logica de negocio de workflows.
@@ -23,13 +24,16 @@ public class WorkflowService {
     private final WorkflowRepository workflowRepository;
     private final CampaignRepository campaignRepository;
     private final WorkflowMapper workflowMapper;
+    private final MessageTemplateService templateService;
 
     public WorkflowService(WorkflowRepository workflowRepository,
                            CampaignRepository campaignRepository,
-                           WorkflowMapper workflowMapper) {
+                           WorkflowMapper workflowMapper,
+                           MessageTemplateService templateService) {
         this.workflowRepository = workflowRepository;
         this.campaignRepository = campaignRepository;
         this.workflowMapper = workflowMapper;
+        this.templateService = templateService;
     }
 
     public List<WorkflowResponse> findAll() {
@@ -56,6 +60,7 @@ public class WorkflowService {
                     "No es posible crear el workflow: la campana indicada no existe");
         }
 
+        validarPlantilla(request);
         Workflow workflow = workflowMapper.toEntity(request);
         workflow.setCreatedAt(LocalDateTime.now());
         if (workflow.getActive() == null) {
@@ -67,6 +72,7 @@ public class WorkflowService {
     @Transactional
     public WorkflowResponse update(Integer id, WorkflowRequest request) {
         Workflow existing = requireWorkflow(id);
+        validarPlantilla(request);
         workflowMapper.aplicarCambios(request, existing);
         return workflowMapper.toResponse(workflowRepository.save(existing));
     }
@@ -87,6 +93,13 @@ public class WorkflowService {
             throw ResourceNotFoundException.de("Workflow", id);
         }
         workflowRepository.deleteById(id);
+    }
+
+    /** Si el workflow referencia una plantilla, debe existir y estar activa. */
+    private void validarPlantilla(WorkflowRequest request) {
+        if (request != null && request.getTemplateId() != null) {
+            templateService.requireActive(request.getTemplateId());
+        }
     }
 
     private Workflow requireWorkflow(Integer id) {

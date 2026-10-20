@@ -1,6 +1,7 @@
 package com.cimaxis.demo.marketing.domain.workflows;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -52,6 +53,14 @@ public class Workflow {
 
     @Column(name = "message_template", columnDefinition = "TEXT")
     private String messageTemplate;
+
+    /**
+     * Plantilla de la biblioteca (marketing_message_templates). Si se indica, el
+     * mensaje (y el asunto del correo) se construye desde ella en lugar de
+     * messageTemplate.
+     */
+    @Column(name = "template_id")
+    private UUID templateId;
 
     @Column(name = "active")
     private Boolean active = true;

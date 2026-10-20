@@ -63,7 +63,7 @@ public class KpiDetailService {
         List<KpiDetailItemDto> items = switch (kpi) {
             case NEW_CLIENTS -> seleccion.newClients().stream()
                     .map(c -> new KpiDetailItemDto(c.getClientId(), nombreCliente(c, c.getClientId()),
-                            c.getPlan() != null ? c.getPlan().name() : "Sin plan",
+                            c.getPlan() != null ? c.getPlan() : "Sin plan",
                             c.getCreatedAt(), null, null, c.getClientId(), nombreCliente(c, c.getClientId())))
                     .toList();
 
@@ -213,7 +213,7 @@ public class KpiDetailService {
                             c.interactions() + " " + unidad,
                             c.lastDate(),
                             BigDecimal.valueOf(c.interactions()),
-                            cliente != null && cliente.getPlan() != null ? cliente.getPlan().name() : null,
+                            cliente != null ? cliente.getPlan() : null,
                             c.clientId(), nombre);
                 })
                 .toList();

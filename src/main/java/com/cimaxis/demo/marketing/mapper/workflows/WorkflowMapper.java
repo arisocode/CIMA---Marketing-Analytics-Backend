@@ -29,6 +29,7 @@ public class WorkflowMapper {
                 .actionType(workflow.getActionType() != null
                         ? workflow.getActionType().name() : null)
                 .messageTemplate(workflow.getMessageTemplate())
+                .templateId(workflow.getTemplateId())
                 .active(workflow.getActive())
                 .createdAt(workflow.getCreatedAt())
                 .build();
@@ -50,6 +51,7 @@ public class WorkflowMapper {
                 .noContactDays(request.getNoContactDays())
                 .actionType(parseAction(request.getActionType()))
                 .messageTemplate(request.getMessageTemplate())
+                .templateId(request.getTemplateId())
                 .active(request.getActive())
                 .build();
     }
@@ -61,6 +63,7 @@ public class WorkflowMapper {
         destino.setNoContactDays(request.getNoContactDays());
         destino.setActionType(parseAction(request.getActionType()));
         destino.setMessageTemplate(request.getMessageTemplate());
+        destino.setTemplateId(request.getTemplateId());
         if (request.getActive() != null) {
             destino.setActive(request.getActive());
         }

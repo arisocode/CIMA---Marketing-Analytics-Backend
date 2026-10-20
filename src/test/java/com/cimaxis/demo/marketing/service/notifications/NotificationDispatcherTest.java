@@ -34,29 +34,65 @@ class NotificationDispatcherTest {
     void failNotifyAdminWhenNoRecipientIsConfigured() {
         ReflectionTestUtils.setField(dispatcher, "adminRecipient", " ");
 
-        DispatchResult result = dispatcher.dispatch(notifyAdminWorkflow(), Map.of(), "Revisar seguimiento");
+        DispatchResult result = dispatcher.dispatch(workflow(Workflow.ActionType.notify_admin), Map.of(), "Revisar seguimiento");
 
         assertThat(result.delivered()).isFalse();
         assertThat(result.channel()).isEqualTo("admin_notification");
+        assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.FAILED);
         verifyNoInteractions(emailService);
     }
 
     @Test
-    void sendNotifyAdminToTheConfiguredOperationalMailbox() {
+    void sendNotifyAdminToTheConfiguredOperationalMailboxKeepingTheDeliveryStatus() {
         ReflectionTestUtils.setField(dispatcher, "adminRecipient", "operaciones@example.test");
-        when(emailService.send("operaciones@example.test", "Alerta administrativa: Seguimiento", "Revisar seguimiento"))
-                .thenReturn(DispatchResult.ok("email", "Enviado"));
+        when(emailService.send("operaciones@example.test", "Alerta administrativa: Seguimiento",
+                "Revisar seguimiento", EmailService.ORIGEN_ALERTA))
+                .thenReturn(DispatchResult.queued("email", "Encolado"));
 
-        DispatchResult result = dispatcher.dispatch(notifyAdminWorkflow(), Map.of(), "Revisar seguimiento");
+        DispatchResult result = dispatcher.dispatch(workflow(Workflow.ActionType.notify_admin), Map.of(), "Revisar seguimiento");
 
-        assertThat(result).isEqualTo(new DispatchResult("admin_notification", true, "Enviado"));
-        verify(emailService).send("operaciones@example.test", "Alerta administrativa: Seguimiento", "Revisar seguimiento");
+        assertThat(result).isEqualTo(new DispatchResult("admin_notification", true, "Encolado", DeliveryStatus.QUEUED));
     }
 
-    private Workflow notifyAdminWorkflow() {
+    @Test
+    void sendEmailUsesTheSubjectFromTheTemplate() {
+        Map<String, Object> cliente = Map.of("email", "ana@test.com");
+        when(crmIntegrationService.extractClientEmail(cliente)).thenReturn("ana@test.com");
+        when(emailService.send("ana@test.com", "Tu propuesta te espera", "Hola Ana", EmailService.ORIGEN_WORKFLOW))
+                .thenReturn(DispatchResult.queued("email", "Encolado"));
+
+        DispatchResult result = dispatcher.dispatch(workflow(Workflow.ActionType.send_email), cliente,
+                "Tu propuesta te espera", "Hola Ana");
+
+        assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.QUEUED);
+        verify(emailService).send("ana@test.com", "Tu propuesta te espera", "Hola Ana", EmailService.ORIGEN_WORKFLOW);
+    }
+
+    @Test
+    void sendEmailFallsBackToTheWorkflowNameAsSubject() {
+        when(crmIntegrationService.extractClientEmail(Map.of())).thenReturn("ana@test.com");
+        when(emailService.send("ana@test.com", "Seguimiento", "Hola", EmailService.ORIGEN_WORKFLOW))
+                .thenReturn(DispatchResult.simulated("email", "Simulado"));
+
+        DispatchResult result = dispatcher.dispatch(workflow(Workflow.ActionType.send_email), Map.of(), "Hola");
+
+        assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.SIMULATED);
+    }
+
+    @Test
+    void whatsappIsMarkedAsSimulatedBecauseThereIsNoIntegration() {
+        DispatchResult result = dispatcher.dispatch(workflow(Workflow.ActionType.send_whatsapp), Map.of(), "Hola");
+
+        assertThat(result.delivered()).isTrue();
+        assertThat(result.channel()).isEqualTo("whatsapp");
+        assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.SIMULATED);
+        verifyNoInteractions(emailService);
+    }
+
+    private Workflow workflow(Workflow.ActionType accion) {
         Workflow workflow = new Workflow();
         workflow.setWorkflowName("Seguimiento");
-        workflow.setActionType(Workflow.ActionType.notify_admin);
+        workflow.setActionType(accion);
         return workflow;
     }
 }

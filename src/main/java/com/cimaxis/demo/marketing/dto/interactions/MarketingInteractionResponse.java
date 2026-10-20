@@ -24,4 +24,7 @@ public class MarketingInteractionResponse {
     private String interactionType;
     private String channel;
     private String response;
+    /** QUEUED, FAILED, SIMULATED o SKIPPED_LIMIT; null si la interaccion no implico un envio. */
+    private String deliveryStatus;
+    private String deliveryError;
 }

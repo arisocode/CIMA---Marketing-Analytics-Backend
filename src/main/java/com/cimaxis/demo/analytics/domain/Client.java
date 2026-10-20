@@ -4,8 +4,6 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -46,17 +44,16 @@ public class Client {
     @Column(name = "additional_info", columnDefinition = "TEXT")
     private String additionalInfo;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "plan")
-    private Plan plan;
+    /**
+     * Nombre del plan comercial (tabla marketing_plans). Es texto, no una lista
+     * fija: CIMA puede crear planes nuevos desde /api/v1/marketing/plans.
+     */
+    @Column(name = "plan", length = 60)
+    private String plan;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    public enum Plan {
-        Platinum, Oro, Diamante
-    }
 }

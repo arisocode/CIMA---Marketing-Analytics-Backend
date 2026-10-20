@@ -29,6 +29,8 @@ public class MarketingInteractionMapper {
                         ? interaction.getInteractionType().name() : null)
                 .channel(interaction.getChannel())
                 .response(interaction.getResponse())
+                .deliveryStatus(interaction.getDeliveryStatus())
+                .deliveryError(interaction.getDeliveryError())
                 .build();
     }
 

@@ -21,6 +21,7 @@ import com.cimaxis.demo.analytics.domain.Project;
 import com.cimaxis.demo.analytics.repository.ClientRepository;
 import com.cimaxis.demo.analytics.repository.ProjectRepository;
 import com.cimaxis.demo.integration.crm.CrmAuthClient;
+import com.cimaxis.demo.marketing.service.plans.MarketingPlanService;
 
 /**
  * Sincronizacion de clientes y proyectos desde el CRM base hacia el esquema de
@@ -35,6 +36,7 @@ public class CrmSyncService {
     private final CrmAuthClient crmAuthClient;
     private final ClientRepository clientRepository;
     private final ProjectRepository projectRepository;
+    private final MarketingPlanService planService;
 
     @Value("${cimaxis.crm.sync.enabled:true}")
     private boolean syncEnabled;
@@ -51,11 +53,13 @@ public class CrmSyncService {
     public CrmSyncService(CrmIntegrationService crmIntegrationService,
                           CrmAuthClient crmAuthClient,
                           ClientRepository clientRepository,
-                          ProjectRepository projectRepository) {
+                          ProjectRepository projectRepository,
+                          MarketingPlanService planService) {
         this.crmIntegrationService = crmIntegrationService;
         this.crmAuthClient = crmAuthClient;
         this.clientRepository = clientRepository;
         this.projectRepository = projectRepository;
+        this.planService = planService;
     }
 
     // ------------------------------------------------------------------
@@ -152,8 +156,9 @@ public class CrmSyncService {
             // El plan es un atributo comercial propio de marketing: el CRM no lo
             // conoce, asi que solo se asigna si aun no tiene valor.
             if (client.getPlan() == null) {
-                Client.Plan plan = parsePlan(primerValor(remoto, "plan", "plan_type"));
-                client.setPlan(plan);
+                // Solo se acepta un plan activo del catalogo de marketing.
+                client.setPlan(planService.findAssignable(primerValor(remoto, "plan", "plan_type"))
+                        .orElse(null));
             }
 
             clientRepository.save(client);
@@ -265,17 +270,5 @@ public class CrmSyncService {
             log.debug("Formato de fecha no reconocido: {}", valor);
             return null;
         }
-    }
-
-    private Client.Plan parsePlan(String valor) {
-        if (valor == null) {
-            return null;
-        }
-        for (Client.Plan plan : Client.Plan.values()) {
-            if (plan.name().equalsIgnoreCase(valor.trim())) {
-                return plan;
-            }
-        }
-        return null;
     }
 }

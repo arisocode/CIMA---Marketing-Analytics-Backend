@@ -1,5 +1,7 @@
 package com.cimaxis.demo.marketing.dto.workflows;
 
+import java.util.UUID;
+
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
@@ -23,6 +25,8 @@ public class WorkflowResponse {
     private Integer noContactDays;
     private String actionType;
     private String messageTemplate;
+    /** Plantilla opcional de la biblioteca; si viene, reemplaza a messageTemplate al enviar. */
+    private UUID templateId;
     private Boolean active;
     private LocalDateTime createdAt;
 }

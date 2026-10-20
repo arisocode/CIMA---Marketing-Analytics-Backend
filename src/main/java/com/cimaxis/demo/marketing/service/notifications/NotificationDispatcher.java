@@ -30,19 +30,33 @@ public class NotificationDispatcher {
         this.crmIntegrationService = crmIntegrationService;
     }
 
+    /** Despacha usando el nombre del workflow como asunto del correo. */
     public DispatchResult dispatch(Workflow workflow,
                                    Map<String, Object> clientData,
+                                   String message) {
+        return dispatch(workflow, clientData, workflow.getWorkflowName(), message);
+    }
+
+    /**
+     * Despacha la accion del workflow. subject solo aplica a send_email (por
+     * ejemplo, el asunto de la plantilla del workflow).
+     */
+    public DispatchResult dispatch(Workflow workflow,
+                                   Map<String, Object> clientData,
+                                   String subject,
                                    String message) {
 
         return switch (workflow.getActionType()) {
 
             case send_email -> emailService.send(
                     crmIntegrationService.extractClientEmail(clientData),
-                    workflow.getWorkflowName(),
-                    message);
+                    subject != null && !subject.isBlank() ? subject : workflow.getWorkflowName(),
+                    message,
+                    EmailService.ORIGEN_WORKFLOW);
 
-            case send_whatsapp -> DispatchResult.ok("whatsapp",
-                    "Mensaje preparado para envio por WhatsApp: " + message);
+            // No hay integracion con WhatsApp: el mensaje queda registrado y se marca como simulado.
+            case send_whatsapp -> DispatchResult.simulated("whatsapp",
+                    "Mensaje preparado para WhatsApp (no se envía automáticamente): " + message);
 
             case log_followup -> {
                 log.info("Seguimiento interno registrado por workflow {}: {}",
@@ -54,15 +68,15 @@ public class NotificationDispatcher {
                 if (adminRecipient == null || adminRecipient.isBlank()) {
                     log.error("No se entrego la alerta administrativa del workflow {}: falta configurar ADMIN_NOTIFICATION_RECIPIENT",
                             workflow.getWorkflowName());
-                    yield DispatchResult.failed("admin_notification",
+                    yield DispatchResult.deliveryFailed("admin_notification",
                             "No hay destinatario administrativo configurado");
                 }
 
-                DispatchResult emailResult = emailService.send(
+                yield emailService.send(
                         adminRecipient.trim(),
                         "Alerta administrativa: " + workflow.getWorkflowName(),
-                        message);
-                yield new DispatchResult("admin_notification", emailResult.delivered(), emailResult.detail());
+                        message,
+                        EmailService.ORIGEN_ALERTA).withChannel("admin_notification");
             }
         };
     }

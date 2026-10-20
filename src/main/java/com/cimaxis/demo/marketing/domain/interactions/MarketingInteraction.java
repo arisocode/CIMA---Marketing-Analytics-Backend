@@ -54,6 +54,18 @@ public class MarketingInteraction {
     @Column(name = "response", columnDefinition = "TEXT")
     private String response;
 
+    /**
+     * Resultado del envio (QUEUED, FAILED, SIMULATED o SKIPPED_LIMIT; ver
+     * DeliveryStatus). Null en interacciones manuales o sin envio. Texto, no
+     * enum, para no crear un CHECK en la base.
+     */
+    @Column(name = "delivery_status", length = 20)
+    private String deliveryStatus;
+
+    /** Motivo cuando el envio fallo o se omitio por el limite diario. */
+    @Column(name = "delivery_error", columnDefinition = "TEXT")
+    private String deliveryError;
+
     public enum InteractionType {
         click, message, inquiry, purchase, testimonial, no_response
     }

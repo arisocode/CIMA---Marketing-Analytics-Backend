@@ -187,6 +187,19 @@ class KpiCalculationServiceTest {
     }
 
     @Test
+    @DisplayName("KPI 5 - Un correo omitido por el limite diario no cuenta como contacto")
+    void correoOmitidoPorLimiteNoEsContacto() {
+        MarketingInteraction omitido = interaccion("c-9", MarketingInteraction.InteractionType.no_response, null);
+        omitido.setDeliveryStatus("SKIPPED_LIMIT");
+        MarketingInteraction fallido = interaccion("c-8", MarketingInteraction.InteractionType.no_response, null);
+        fallido.setDeliveryStatus("FAILED");
+        when(interactionRepository.findByContactDateBetween(any(), any())).thenReturn(List.of(
+                interaccion("c-1", MarketingInteraction.InteractionType.message, null), omitido, fallido));
+
+        assertThat(service.calculate(FEBRERO).getClientsContacted()).isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("KPI 6 - Tasa de respuesta: sin clientes contactados es cero (sin dividir por cero)")
     void tasaDeRespuestaSinContactadosEsCero() {
         assertThat(service.calculate(FEBRERO).getResponseRate()).isEqualByComparingTo("0");

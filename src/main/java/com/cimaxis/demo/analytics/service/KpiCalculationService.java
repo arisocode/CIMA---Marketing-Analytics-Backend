@@ -32,6 +32,7 @@ import com.cimaxis.demo.marketing.domain.interactions.MarketingInteraction;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
+import com.cimaxis.demo.marketing.service.notifications.DeliveryStatus;
 
 /**
  * Calcula los ocho KPIs definidos y los persiste en
@@ -189,6 +190,8 @@ public class KpiCalculationService {
         Map<String, Long> cantidad = new LinkedHashMap<>();
         for (MarketingInteraction interaction : interacciones) {
             if (interaction.getClientId() == null) continue;
+            // Un correo omitido por el limite diario nunca salio: no es un contacto.
+            if (DeliveryStatus.SKIPPED_LIMIT.name().equals(interaction.getDeliveryStatus())) continue;
             if (soloRespuestas && !esRespuesta(interaction)) continue;
             String clientId = interaction.getClientId();
             cantidad.merge(clientId, 1L, Long::sum);

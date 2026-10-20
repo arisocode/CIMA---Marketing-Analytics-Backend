@@ -80,6 +80,43 @@ Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:280
 
 ---
 
+### F. Catálogo de Planes (`/plans`)
+Lectura: `admin` y `worker`. Escritura: solo `admin`. Un plan no se borra: se desactiva, y un plan inactivo no se puede asignar a clientes.
+
+| Método | Endpoint Público KrakenD | Backend Interno | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/marketing/plans?includeInactive=false` | `/api/v1/marketing/plans` | Planes ordenados por `sortOrder`, con `clientCount`. |
+| `POST` | `/api/v1/marketing/plans` | `/api/v1/marketing/plans` | Crea un plan `{name, color, description, sortOrder}`. |
+| `PUT` | `/api/v1/marketing/plans/{planId}` | `/api/v1/marketing/plans/{planId}` | Edita el plan. Si cambia el nombre, actualiza en la misma transacción a los clientes que lo tienen. |
+| `PATCH` | `/api/v1/marketing/plans/{planId}/active` | `/api/v1/marketing/plans/{planId}/active` | Activa o desactiva `{active}`. |
+
+Respuesta: `{planId, name, color, description, sortOrder, active, clientCount}`. `color` es hexadecimal (`#RRGGBB`). La asignación de planes a clientes, la segmentación por plan y `GET /api/v1/analytics/customers/plan-distribution` (que ahora incluye `color`) se validan contra este catálogo.
+
+### G. Correos (`/notifications`)
+| Método | Endpoint Público KrakenD | Backend Interno | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/marketing/notifications/email-quota` | `/api/v1/marketing/notifications/email-quota` | Cupo diario: `{enabled, dailyLimit, sentToday, remaining}` (zona America/Bogota). |
+| `POST` | `/api/v1/marketing/notifications/test-email` | `/api/v1/marketing/notifications/test-email` | Solo `admin`. Envía un correo de prueba `{to}` con la plantilla de marca y devuelve `{deliveryStatus, detail}`. |
+
+Los correos salen por `crm-media` (`POST /api/v1/emails/send`, JWT de servicio). Valores de `deliveryStatus`:
+- `QUEUED`: crm-media respondió 202 y encoló el correo.
+- `FAILED`: no se pudo entregar a crm-media.
+- `SIMULATED`: el envío real está apagado (`CIMAXIS_MAIL_ENABLED=false`).
+- `SKIPPED_LIMIT`: se alcanzó `CIMAXIS_MAIL_DAILY_LIMIT` y no se llamó a crm-media.
+
+Las interacciones exponen `deliveryStatus` y `deliveryError`.
+
+### H. Plantillas de Mensajes (`/templates`)
+| Método | Endpoint Público KrakenD | Backend Interno | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/marketing/templates?channel=&plan=` | `/api/v1/marketing/templates` | Lista; con `plan` incluye también las plantillas generales (sin plan). |
+| `POST` | `/api/v1/marketing/templates` | `/api/v1/marketing/templates` | Crea `{name, channel, plan, subject, body}`; `channel` ∈ `EMAIL`, `WHATSAPP`, `IN_APP`. |
+| `PUT` | `/api/v1/marketing/templates/{templateId}` | `/api/v1/marketing/templates/{templateId}` | Edita la plantilla. |
+| `PATCH` | `/api/v1/marketing/templates/{templateId}/active` | `/api/v1/marketing/templates/{templateId}/active` | Activa o desactiva `{active}`. |
+| `POST` | `/api/v1/marketing/templates/{templateId}/preview` | `/api/v1/marketing/templates/{templateId}/preview` | `{clientId}` → `{subject, body}` con las variables reemplazadas. |
+
+Variables: `{nombre}`, `{plan}`, `{empresa}` y `{workflow}`. Un workflow acepta `templateId` opcional; si lo tiene y la plantilla está activa, el mensaje y el asunto del correo salen de ella.
+
 ## 3. Endpoints de Integración CRM (`/api/v1/integration/*`)
 
 | Método | Endpoint Público KrakenD | Backend Interno | Descripción |

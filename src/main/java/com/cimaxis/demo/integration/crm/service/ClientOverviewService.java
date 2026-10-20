@@ -53,7 +53,7 @@ public class ClientOverviewService {
         overview.put("clientId", clientId);
 
         clientRepository.findById(clientId).ifPresent(client ->
-                overview.put("plan", client.getPlan() != null ? client.getPlan().name() : null));
+                overview.put("plan", client.getPlan()));
 
         // Datos de contacto desde el CRM base (RF-02)
         if (bearerToken != null) {

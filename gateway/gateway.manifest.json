@@ -1,6 +1,6 @@
 {
   "service": "marketing",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "endpoints": [
     {
       "endpoint": "/api/v1/marketing/campaigns",
@@ -446,6 +446,79 @@
         "period",
         "format"
       ]
+    },
+    {
+      "endpoint": "/api/v1/marketing/plans",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/plans",
+      "openapi_ref": "GET /api/marketing/plans",
+      "input_query_strings": [
+        "includeInactive"
+      ]
+    },
+    {
+      "endpoint": "/api/v1/marketing/plans",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/plans",
+      "openapi_ref": "POST /api/marketing/plans"
+    },
+    {
+      "endpoint": "/api/v1/marketing/plans/{planId}",
+      "method": "PUT",
+      "backend_url": "/api/v1/marketing/plans/{planId}",
+      "openapi_ref": "PUT /api/marketing/plans/{planId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/plans/{planId}/active",
+      "method": "PATCH",
+      "backend_url": "/api/v1/marketing/plans/{planId}/active",
+      "openapi_ref": "PATCH /api/marketing/plans/{planId}/active"
+    },
+    {
+      "endpoint": "/api/v1/marketing/notifications/email-quota",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/notifications/email-quota",
+      "openapi_ref": "GET /api/marketing/notifications/email-quota"
+    },
+    {
+      "endpoint": "/api/v1/marketing/notifications/test-email",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/notifications/test-email",
+      "openapi_ref": "POST /api/marketing/notifications/test-email"
+    },
+    {
+      "endpoint": "/api/v1/marketing/templates",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/templates",
+      "openapi_ref": "GET /api/marketing/templates",
+      "input_query_strings": [
+        "channel",
+        "plan"
+      ]
+    },
+    {
+      "endpoint": "/api/v1/marketing/templates",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/templates",
+      "openapi_ref": "POST /api/marketing/templates"
+    },
+    {
+      "endpoint": "/api/v1/marketing/templates/{templateId}",
+      "method": "PUT",
+      "backend_url": "/api/v1/marketing/templates/{templateId}",
+      "openapi_ref": "PUT /api/marketing/templates/{templateId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/templates/{templateId}/active",
+      "method": "PATCH",
+      "backend_url": "/api/v1/marketing/templates/{templateId}/active",
+      "openapi_ref": "PATCH /api/marketing/templates/{templateId}/active"
+    },
+    {
+      "endpoint": "/api/v1/marketing/templates/{templateId}/preview",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/templates/{templateId}/preview",
+      "openapi_ref": "POST /api/marketing/templates/{templateId}/preview"
     }
   ]
 }

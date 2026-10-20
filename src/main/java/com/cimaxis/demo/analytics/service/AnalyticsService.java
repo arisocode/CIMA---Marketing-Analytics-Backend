@@ -2,6 +2,7 @@ package com.cimaxis.demo.analytics.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,7 +11,6 @@ import java.util.stream.Collectors;
 import com.cimaxis.demo.config.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.cimaxis.demo.analytics.domain.Client;
 import com.cimaxis.demo.analytics.domain.Inventory;
 import com.cimaxis.demo.analytics.dto.AnalyticsSummaryDto;
 import com.cimaxis.demo.analytics.dto.CampaignStatusReportDto;
@@ -28,6 +28,9 @@ import com.cimaxis.demo.analytics.repository.UserRepository;
 import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
+import com.cimaxis.demo.marketing.domain.plans.MarketingPlan;
+import com.cimaxis.demo.marketing.repository.plans.MarketingPlanRepository;
+import com.cimaxis.demo.marketing.service.plans.MarketingPlanService;
 
 /**
  * Servicio que agrupa consultas y logica de negocio para generar
@@ -45,6 +48,7 @@ public class AnalyticsService {
     private final CampaignRepository campaignRepository;
     private final MarketingInteractionRepository interactionRepository;
     private final KpiSnapshotMapper kpiSnapshotMapper;
+    private final MarketingPlanRepository planRepository;
 
     private static final Set<String> ESTADOS_EN_CURSO =
             Set.of(
@@ -66,7 +70,8 @@ public class AnalyticsService {
             KpiSnapshotRepository kpiSnapshotRepository,
             CampaignRepository campaignRepository,
             MarketingInteractionRepository interactionRepository,
-            KpiSnapshotMapper kpiSnapshotMapper) {
+            KpiSnapshotMapper kpiSnapshotMapper,
+            MarketingPlanRepository planRepository) {
         this.clientRepository = clientRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
@@ -76,6 +81,7 @@ public class AnalyticsService {
         this.campaignRepository = campaignRepository;
         this.interactionRepository = interactionRepository;
         this.kpiSnapshotMapper = kpiSnapshotMapper;
+        this.planRepository = planRepository;
     }
 
     public AnalyticsSummaryDto getSummary() {
@@ -104,14 +110,42 @@ public class AnalyticsService {
                 .build();
     }
 
+    /**
+     * Clientes por plan, en el orden del catalogo marketing_plans. Incluye los
+     * planes activos (aunque tengan 0 clientes) y los inactivos que aun tienen
+     * clientes. Si algun cliente tiene un plan que no esta en el catalogo, se
+     * agrega al final para que el total cuadre.
+     */
     public List<ClientPlanDistributionDto> getClientPlanDistribution() {
-        List<ClientPlanDistributionDto> distribution = new ArrayList<>();
-        for (Client.Plan plan : Client.Plan.values()) {
-            distribution.add(ClientPlanDistributionDto.builder()
-                    .plan(plan.name())
-                    .clientCount(clientRepository.countByPlan(plan))
-                    .build());
+        Map<String, Long> conteo = new LinkedHashMap<>();
+        Map<String, String> nombreOriginal = new LinkedHashMap<>();
+        List<Object[]> filas = clientRepository.countGroupedByPlan();
+        if (filas != null) {
+            for (Object[] fila : filas) {
+                if (fila == null || fila.length < 2 || fila[0] == null) continue;
+                String clave = MarketingPlanService.clave(fila[0].toString());
+                long total = fila[1] instanceof Number numero ? numero.longValue() : 0L;
+                conteo.merge(clave, total, Long::sum);
+                nombreOriginal.putIfAbsent(clave, fila[0].toString().trim());
+            }
         }
+
+        List<ClientPlanDistributionDto> distribution = new ArrayList<>();
+        for (MarketingPlan plan : planRepository.findAllByOrderBySortOrderAscNameAsc()) {
+            Long clientes = conteo.remove(MarketingPlanService.clave(plan.getName()));
+            long total = clientes != null ? clientes : 0L;
+            if (Boolean.TRUE.equals(plan.getActive()) || total > 0) {
+                distribution.add(ClientPlanDistributionDto.builder()
+                        .plan(plan.getName())
+                        .clientCount(total)
+                        .color(plan.getColor())
+                        .build());
+            }
+        }
+        conteo.forEach((clave, total) -> distribution.add(ClientPlanDistributionDto.builder()
+                .plan(nombreOriginal.get(clave))
+                .clientCount(total)
+                .build()));
         return distribution;
     }
 
@@ -119,7 +153,7 @@ public class AnalyticsService {
         return clientRepository.findClientActivitiesSummary().stream()
                 .map(summary -> ClientActivityDto.builder()
                         .clientId(summary.getClientId())
-                        .plan(summary.getPlan() != null ? summary.getPlan().name() : "Unknown")
+                        .plan(summary.getPlan() != null ? summary.getPlan() : "Unknown")
                         .campaignCount(summary.getCampaignCount())
                         .projectCount(summary.getProjectCount())
                         .build())
