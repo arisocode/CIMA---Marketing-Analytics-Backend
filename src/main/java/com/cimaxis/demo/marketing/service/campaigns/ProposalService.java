@@ -23,13 +23,16 @@ public class ProposalService {
     private final ProposalRepository proposalRepository;
     private final ClientRepository clientRepository;
     private final ProposalMapper proposalMapper;
+    private final ProposalSentNotifier sentNotifier;
 
     public ProposalService(ProposalRepository proposalRepository,
                            ClientRepository clientRepository,
-                           ProposalMapper proposalMapper) {
+                           ProposalMapper proposalMapper,
+                           ProposalSentNotifier sentNotifier) {
         this.proposalRepository = proposalRepository;
         this.clientRepository = clientRepository;
         this.proposalMapper = proposalMapper;
+        this.sentNotifier = sentNotifier;
     }
 
     public List<ProposalResponse> findAll() {
@@ -69,15 +72,20 @@ public class ProposalService {
         }
         proposal.setCreatedAt(LocalDateTime.now());
         proposal.setUpdatedAt(LocalDateTime.now());
-        return proposalMapper.toResponse(proposalRepository.save(proposal));
+        Proposal guardada = proposalRepository.save(proposal);
+        avisarSiPasaAEnviada(null, guardada);
+        return proposalMapper.toResponse(guardada);
     }
 
     @Transactional
     public ProposalResponse update(Integer id, ProposalRequest request) {
         Proposal existing = requireProposal(id);
+        Proposal.ProposalStatus anterior = existing.getStatus();
         proposalMapper.aplicarCambios(request, existing);
         existing.setUpdatedAt(LocalDateTime.now());
-        return proposalMapper.toResponse(proposalRepository.save(existing));
+        Proposal guardada = proposalRepository.save(existing);
+        avisarSiPasaAEnviada(anterior, guardada);
+        return proposalMapper.toResponse(guardada);
     }
 
     /**
@@ -92,12 +100,15 @@ public class ProposalService {
         }
 
         Proposal existing = requireProposal(id);
+        Proposal.ProposalStatus anterior = existing.getStatus();
         existing.setStatus(nuevo);
         if (nuevo == Proposal.ProposalStatus.Approved || nuevo == Proposal.ProposalStatus.Rejected) {
             existing.setResponseDate(LocalDate.now());
         }
         existing.setUpdatedAt(LocalDateTime.now());
-        return proposalMapper.toResponse(proposalRepository.save(existing));
+        Proposal guardada = proposalRepository.save(existing);
+        avisarSiPasaAEnviada(anterior, guardada);
+        return proposalMapper.toResponse(guardada);
     }
 
     /**
@@ -128,6 +139,15 @@ public class ProposalService {
             throw ResourceNotFoundException.de("Propuesta", id);
         }
         proposalRepository.deleteById(id);
+    }
+
+    /** Aviso por correo al cliente cuando la propuesta pasa a Sent (no se repite si ya estaba en Sent). */
+    private void avisarSiPasaAEnviada(Proposal.ProposalStatus anterior, Proposal guardada) {
+        if (sentNotifier != null && guardada != null
+                && guardada.getStatus() == Proposal.ProposalStatus.Sent
+                && anterior != Proposal.ProposalStatus.Sent) {
+            sentNotifier.notifySent(guardada);
+        }
     }
 
     private Proposal requireProposal(Integer id) {

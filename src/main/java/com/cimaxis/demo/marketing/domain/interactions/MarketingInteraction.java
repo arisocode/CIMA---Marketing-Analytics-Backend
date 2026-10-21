@@ -29,7 +29,8 @@ public class MarketingInteraction {
     @Column(name = "interaction_id")
     private Integer interactionId;
 
-    @Column(name = "campaign_id", nullable = false)
+    /** Opcional: los mensajes del portal y las decisiones de propuestas no tienen campaña. */
+    @Column(name = "campaign_id")
     private Integer campaignId;
 
     @Column(name = "client_id", nullable = false, length = 36)

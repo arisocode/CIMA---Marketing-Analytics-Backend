@@ -130,6 +130,25 @@ Etapas del embudo (`stageKey`): `clients`, `contacted`, `responded`, `proposal_s
 
 Puntaje de interés (`InterestScore`): +30 si respondió en los últimos 30 días, +20 con propuesta abierta (`Sent`/`In_negotiation`), +30 con propuesta `Approved`, +20 con proyecto, −1 por cada día sin contacto por encima de 15; acotado a 0–100.
 
+### J. Portal del Cliente (solo rol `client`; el cliente sale de `X-User-Sub`)
+| Método | Endpoint Público KrakenD | Backend Interno | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/marketing/me/summary` | `/api/v1/marketing/me/summary` | `{clientName, plan, planColor, pendingProposals, unreadMessages, approvedProposals}`. |
+| `GET` | `/api/v1/marketing/me/proposals` | `/api/v1/marketing/me/proposals` | `[{proposalId, title, description, value, status, documentUrl, createdDate, responseDate, clientComment, projectId}]`; solo Sent, In_negotiation, Approved y Rejected; pendientes primero. |
+| `PATCH` | `/api/v1/marketing/me/proposals/{id}/decision` | `/api/v1/marketing/me/proposals/{id}/decision` | `{decision: ACCEPTED\|REJECTED, comment}`. 409 si ya no está en Sent/In_negotiation; 404 si no es suya. |
+| `GET` | `/api/v1/marketing/me/messages` | `/api/v1/marketing/me/messages` | Conversación ascendente; marca como leídos los mensajes de CIMA. |
+| `POST` | `/api/v1/marketing/me/messages` | `/api/v1/marketing/me/messages` | `{body}` (máx. 4000). Máximo 30 por hora (429). |
+
+### K. Conversaciones Comerciales (admin y worker)
+| Método | Endpoint Público KrakenD | Backend Interno | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/marketing/messages/threads` | `/api/v1/marketing/messages/threads` | `[{clientId, clientName, plan, lastMessage, lastAt, lastDirection, unread}]`; no leídos primero. |
+| `GET` | `/api/v1/marketing/messages/{clientId}` | `/api/v1/marketing/messages/{clientId}` | Conversación del cliente (no cambia la lectura). |
+| `POST` | `/api/v1/marketing/messages/{clientId}` | `/api/v1/marketing/messages/{clientId}` | `{body, alsoEmail}` → mensaje OUTBOUND con `emailDeliveryStatus` y `emailDetail` si se pidió correo. |
+| `PATCH` | `/api/v1/marketing/messages/{clientId}/read` | `/api/v1/marketing/messages/{clientId}/read` | Marca como leídos los mensajes del cliente → `{marked}`. |
+
+Cada mensaje y cada decisión del portal queda como interacción con `channel = "portal"` y `campaignId = null`: los del cliente como `inquiry` con `response` (cuentan como respuesta), los de CIMA como `message`. **`campaignId` de las interacciones puede venir `null`.** Cuando CIMA pasa una propuesta a `Sent`, el cliente recibe el correo "Tienes una nueva propuesta de CIMA" (respeta el cupo diario).
+
 ## 3. Endpoints de Integración CRM (`/api/v1/integration/*`)
 
 | Método | Endpoint Público KrakenD | Backend Interno | Descripción |

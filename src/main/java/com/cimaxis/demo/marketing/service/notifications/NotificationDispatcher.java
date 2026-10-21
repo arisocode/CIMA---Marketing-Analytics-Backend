@@ -64,20 +64,21 @@ public class NotificationDispatcher {
                 yield DispatchResult.ok("internal", "Seguimiento registrado en el sistema");
             }
 
-            case notify_admin -> {
-                if (adminRecipient == null || adminRecipient.isBlank()) {
-                    log.error("No se entrego la alerta administrativa del workflow {}: falta configurar ADMIN_NOTIFICATION_RECIPIENT",
-                            workflow.getWorkflowName());
-                    yield DispatchResult.deliveryFailed("admin_notification",
-                            "No hay destinatario administrativo configurado");
-                }
-
-                yield emailService.send(
-                        adminRecipient.trim(),
-                        "Alerta administrativa: " + workflow.getWorkflowName(),
-                        message,
-                        EmailService.ORIGEN_ALERTA).withChannel("admin_notification");
-            }
+            case notify_admin -> notifyAdmin("Alerta administrativa: " + workflow.getWorkflowName(), message);
         };
+    }
+
+    /**
+     * Correo al destinatario administrativo (ADMIN_NOTIFICATION_RECIPIENT). Lo usan
+     * los workflows notify_admin y el portal del cliente (decisiones de propuestas).
+     */
+    public DispatchResult notifyAdmin(String subject, String message) {
+        if (adminRecipient == null || adminRecipient.isBlank()) {
+            log.error("No se entrego la alerta administrativa '{}': falta configurar ADMIN_NOTIFICATION_RECIPIENT", subject);
+            return DispatchResult.deliveryFailed("admin_notification",
+                    "No hay destinatario administrativo configurado");
+        }
+        return emailService.send(adminRecipient.trim(), subject, message, EmailService.ORIGEN_ALERTA)
+                .withChannel("admin_notification");
     }
 }

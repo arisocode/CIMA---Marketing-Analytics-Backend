@@ -1,6 +1,6 @@
 {
   "service": "marketing",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "endpoints": [
     {
       "endpoint": "/api/v1/marketing/campaigns",
@@ -207,6 +207,60 @@
         "daysWithoutContact",
         "daysWithoutResponse"
       ]
+    },
+    {
+      "endpoint": "/api/v1/marketing/me/summary",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/me/summary",
+      "openapi_ref": "GET /api/marketing/me/summary"
+    },
+    {
+      "endpoint": "/api/v1/marketing/me/proposals",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/me/proposals",
+      "openapi_ref": "GET /api/marketing/me/proposals"
+    },
+    {
+      "endpoint": "/api/v1/marketing/me/proposals/{id}/decision",
+      "method": "PATCH",
+      "backend_url": "/api/v1/marketing/me/proposals/{id}/decision",
+      "openapi_ref": "PATCH /api/marketing/me/proposals/{id}/decision"
+    },
+    {
+      "endpoint": "/api/v1/marketing/me/messages",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/me/messages",
+      "openapi_ref": "GET /api/marketing/me/messages"
+    },
+    {
+      "endpoint": "/api/v1/marketing/me/messages",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/me/messages",
+      "openapi_ref": "POST /api/marketing/me/messages"
+    },
+    {
+      "endpoint": "/api/v1/marketing/messages/threads",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/messages/threads",
+      "openapi_ref": "GET /api/marketing/messages/threads"
+    },
+    {
+      "endpoint": "/api/v1/marketing/messages/{clientId}",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/messages/{clientId}",
+      "openapi_ref": "GET /api/marketing/messages/{clientId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/messages/{clientId}",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/messages/{clientId}",
+      "openapi_ref": "POST /api/marketing/messages/{clientId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/messages/{clientId}/read",
+      "method": "PATCH",
+      "backend_url": "/api/v1/marketing/messages/{clientId}/read",
+      "openapi_ref": "PATCH /api/marketing/messages/{clientId}/read"
     },
     {
       "endpoint": "/api/v1/marketing/segments/preview",

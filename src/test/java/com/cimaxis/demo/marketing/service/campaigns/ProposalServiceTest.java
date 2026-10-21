@@ -37,12 +37,13 @@ class ProposalServiceTest {
 
     @Mock private ProposalRepository proposalRepository;
     @Mock private ClientRepository clientRepository;
+    @Mock private ProposalSentNotifier sentNotifier;
 
     private ProposalService service;
 
     @BeforeEach
     void setUp() {
-        service = new ProposalService(proposalRepository, clientRepository, new ProposalMapper());
+        service = new ProposalService(proposalRepository, clientRepository, new ProposalMapper(), sentNotifier);
     }
 
     // ---------------------------------------------------------------- creacion
@@ -142,6 +143,53 @@ class ProposalServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Propuesta no encontrado: 99");
         verify(proposalRepository, never()).deleteById(any());
+    }
+
+    // ---------------------------------------------------------------- aviso al cliente
+
+    @Test
+    @DisplayName("Pasar una propuesta a Sent avisa al cliente por correo")
+    void avisaAlClienteAlEnviar() {
+        Proposal enDiagnostico = propuesta(Proposal.ProposalStatus.In_diagnosis);
+        when(proposalRepository.findById(7)).thenReturn(Optional.of(enDiagnostico));
+        guardarDevuelveLoMismo();
+
+        service.changeStatus(7, "Sent");
+
+        verify(sentNotifier).notifySent(enDiagnostico);
+    }
+
+    @Test
+    @DisplayName("Si la propuesta ya estaba en Sent no se repite el aviso")
+    void noRepiteAvisoSiYaEstabaEnviada() {
+        when(proposalRepository.findById(7)).thenReturn(Optional.of(propuesta(Proposal.ProposalStatus.Sent)));
+        guardarDevuelveLoMismo();
+
+        service.changeStatus(7, "Sent");
+
+        verify(sentNotifier, never()).notifySent(any());
+    }
+
+    @Test
+    @DisplayName("Otros estados no envian aviso al cliente")
+    void otrosEstadosNoAvisan() {
+        when(proposalRepository.findById(7)).thenReturn(Optional.of(propuesta(Proposal.ProposalStatus.Sent)));
+        guardarDevuelveLoMismo();
+
+        service.changeStatus(7, "In_negotiation");
+
+        verify(sentNotifier, never()).notifySent(any());
+    }
+
+    @Test
+    @DisplayName("Crear una propuesta directamente en Sent tambien avisa al cliente")
+    void crearEnviadaAvisa() {
+        clienteExiste();
+        guardarDevuelveLoMismo();
+
+        service.create(request("Sent"));
+
+        verify(sentNotifier).notifySent(any(Proposal.class));
     }
 
     // ---------------------------------------------------------------- proyecto vinculado
