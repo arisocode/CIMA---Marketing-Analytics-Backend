@@ -54,6 +54,10 @@ public class Proposal {
     @Column(name = "estimated_value", precision = 12, scale = 2)
     private BigDecimal estimatedValue;
 
+    /** Proyecto de CIMAxios creado a partir de esta propuesta aprobada (opcional). */
+    @Column(name = "project_id", length = 36)
+    private String projectId;
+
     @Column(name = "created_date")
     private LocalDate createdDate;
 

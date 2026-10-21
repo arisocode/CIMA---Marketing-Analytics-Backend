@@ -23,6 +23,7 @@ public class ProposalResponse {
     private String documentUrl;
     private String status;
     private BigDecimal estimatedValue;
+    private String projectId;
     private LocalDate createdDate;
     private LocalDate responseDate;
     private LocalDateTime createdAt;

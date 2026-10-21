@@ -43,6 +43,7 @@ Este documento describe el modelo relacional en PostgreSQL, la configuración de
 - **`MARKETING_MESSAGE_TEMPLATES`**: Plantillas de mensajes por canal (EMAIL, WHATSAPP, IN_APP) y plan opcional, con variables `{nombre}`, `{plan}`, `{empresa}`.
 - **`MARKETING_EMAIL_DELIVERIES`**: Registro de cada intento de correo (QUEUED, FAILED, SIMULATED, SKIPPED_LIMIT); con él se calcula el cupo diario (zona America/Bogota).
 - Columnas nuevas: `marketing_interactions.delivery_status`, `marketing_interactions.delivery_error` y `workflows.template_id`.
+- `PROPOSALS.project_id` (varchar 36, nullable): proyecto de CIMAxios vinculado a una propuesta aprobada. Script opcional: `scripts/2026-10-21-propuesta-proyecto.sql`.
 - Migración manual: `scripts/2026-10-19-planes-correos-plantillas.sql` (quita el CHECK de `clients.plan` y registra planes heredados como inactivos).
 
 ---
