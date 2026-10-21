@@ -144,6 +144,53 @@ class ProposalServiceTest {
         verify(proposalRepository, never()).deleteById(any());
     }
 
+    // ---------------------------------------------------------------- proyecto vinculado
+
+    @Test
+    @DisplayName("Se vincula un proyecto a una propuesta aprobada y se expone en la respuesta")
+    void vinculaProyectoAPropuestaAprobada() {
+        when(proposalRepository.findById(7)).thenReturn(Optional.of(propuesta(Proposal.ProposalStatus.Approved)));
+        guardarDevuelveLoMismo();
+
+        ProposalResponse respuesta = service.linkProject(7, "  0b6f2c1e-1111-4a2b-9c3d-000000000001 ");
+
+        assertThat(respuesta.getProjectId()).isEqualTo("0b6f2c1e-1111-4a2b-9c3d-000000000001");
+        assertThat(respuesta.getUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("projectId null desvincula el proyecto")
+    void desvinculaProyecto() {
+        Proposal aprobada = propuesta(Proposal.ProposalStatus.Approved);
+        aprobada.setProjectId("p-1");
+        when(proposalRepository.findById(7)).thenReturn(Optional.of(aprobada));
+        guardarDevuelveLoMismo();
+
+        assertThat(service.linkProject(7, null).getProjectId()).isNull();
+    }
+
+    @Test
+    @DisplayName("Solo las propuestas aprobadas aceptan proyecto")
+    void rechazaProyectoEnPropuestaNoAprobada() {
+        when(proposalRepository.findById(7)).thenReturn(Optional.of(propuesta(Proposal.ProposalStatus.Sent)));
+
+        assertThatThrownBy(() -> service.linkProject(7, "p-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("propuesta aprobada");
+        verify(proposalRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("El identificador del proyecto admite maximo 36 caracteres")
+    void rechazaProjectIdLargo() {
+        when(proposalRepository.findById(7)).thenReturn(Optional.of(propuesta(Proposal.ProposalStatus.Approved)));
+
+        assertThatThrownBy(() -> service.linkProject(7, "x".repeat(37)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("36");
+        verify(proposalRepository, never()).save(any());
+    }
+
     // ---------------------------------------------------------------- utilidades
 
     private void clienteExiste() {

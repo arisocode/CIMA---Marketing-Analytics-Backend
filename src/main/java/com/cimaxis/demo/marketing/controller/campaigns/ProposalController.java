@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cimaxis.demo.marketing.dto.campaigns.ProposalProjectRequest;
 import com.cimaxis.demo.marketing.dto.campaigns.ProposalRequest;
 import com.cimaxis.demo.marketing.dto.campaigns.ProposalResponse;
 import com.cimaxis.demo.marketing.dto.campaigns.ProposalStatusRequest;
@@ -69,6 +70,14 @@ public class ProposalController {
     public ResponseEntity<ProposalResponse> changeStatus(@PathVariable Integer id,
                                                          @RequestBody ProposalStatusRequest request) {
         return ResponseEntity.ok(proposalService.changeStatus(id, request.getStatus()));
+    }
+
+    /** Vincula (o desvincula con projectId null) el proyecto de una propuesta aprobada. */
+    @PatchMapping("/{id}/project")
+    @PreAuthorize("hasAnyRole('admin','worker')")
+    public ResponseEntity<ProposalResponse> linkProject(@PathVariable Integer id,
+                                                        @RequestBody(required = false) ProposalProjectRequest request) {
+        return ResponseEntity.ok(proposalService.linkProject(id, request != null ? request.projectId() : null));
     }
 
     @DeleteMapping("/{id}")

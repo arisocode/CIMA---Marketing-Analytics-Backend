@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cimaxis.demo.analytics.domain.Client;
+import com.cimaxis.demo.marketing.dto.commercial.MarketingClientResponse;
+import com.cimaxis.demo.marketing.service.commercial.ClientScoreService;
 import com.cimaxis.demo.marketing.service.segmentation.ClientPlanService;
 
 import lombok.RequiredArgsConstructor;
@@ -26,11 +28,12 @@ import lombok.RequiredArgsConstructor;
 public class ClientPlanController {
 
     private final ClientPlanService clientPlanService;
+    private final ClientScoreService clientScoreService;
 
-    /** Clientes sincronizados, con su plan comercial. */
+    /** Clientes sincronizados, con su plan comercial y su puntaje de interes (score 0-100). */
     @GetMapping
-    public ResponseEntity<List<Client>> getAll() {
-        return ResponseEntity.ok(clientPlanService.findAll());
+    public ResponseEntity<List<MarketingClientResponse>> getAll() {
+        return ResponseEntity.ok(clientScoreService.conPuntaje(clientPlanService.findAll()));
     }
 
     @GetMapping("/{clientId}")
@@ -39,14 +42,14 @@ public class ClientPlanController {
     }
 
     @GetMapping("/plan/{plan}")
-    public ResponseEntity<List<Client>> getByPlan(@PathVariable String plan) {
-        return ResponseEntity.ok(clientPlanService.findByPlan(plan));
+    public ResponseEntity<List<MarketingClientResponse>> getByPlan(@PathVariable String plan) {
+        return ResponseEntity.ok(clientScoreService.conPuntaje(clientPlanService.findByPlan(plan)));
     }
 
     /** Clientes pendientes de clasificar comercialmente. */
     @GetMapping("/sin-plan")
-    public ResponseEntity<List<Client>> getSinPlan() {
-        return ResponseEntity.ok(clientPlanService.findSinPlan());
+    public ResponseEntity<List<MarketingClientResponse>> getSinPlan() {
+        return ResponseEntity.ok(clientScoreService.conPuntaje(clientPlanService.findSinPlan()));
     }
 
     /** Asigna el plan a un cliente. Cuerpo: {"plan": "Oro"} */

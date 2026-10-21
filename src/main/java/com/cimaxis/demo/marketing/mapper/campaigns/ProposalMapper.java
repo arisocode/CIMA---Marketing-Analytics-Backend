@@ -25,6 +25,7 @@ public class ProposalMapper {
                 .documentUrl(proposal.getDocumentUrl())
                 .status(proposal.getStatus() != null ? proposal.getStatus().name() : null)
                 .estimatedValue(proposal.getEstimatedValue())
+                .projectId(proposal.getProjectId())
                 .createdDate(proposal.getCreatedDate())
                 .responseDate(proposal.getResponseDate())
                 .createdAt(proposal.getCreatedAt())

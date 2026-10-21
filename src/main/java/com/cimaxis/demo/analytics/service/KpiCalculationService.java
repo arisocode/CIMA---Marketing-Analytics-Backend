@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -178,6 +179,36 @@ public class KpiCalculationService {
                 .build();
     }
 
+    /**
+     * Contacto: interaccion con cliente que no fue omitida por el limite diario de
+     * correos (SKIPPED_LIMIT nunca salio). Es la misma definicion que usan el KPI
+     * de clientes contactados, el embudo comercial y el puntaje de interes.
+     */
+    public static boolean esContacto(MarketingInteraction interaction) {
+        return interaction != null
+                && interaction.getClientId() != null
+                && !DeliveryStatus.SKIPPED_LIMIT.name().equals(interaction.getDeliveryStatus());
+    }
+
+    /** Clientes distintos con al menos un contacto en la lista (orden de aparicion). */
+    public static Set<String> clientesContactados(List<MarketingInteraction> interacciones) {
+        Set<String> ids = new LinkedHashSet<>();
+        for (MarketingInteraction interaction : nullSafe(interacciones)) {
+            if (esContacto(interaction)) ids.add(interaction.getClientId());
+        }
+        return ids;
+    }
+
+    /** Clientes distintos con al menos una respuesta (contacto que ademas es respuesta). */
+    public static Set<String> clientesQueRespondieron(List<MarketingInteraction> interacciones) {
+        Set<String> ids = new LinkedHashSet<>();
+        for (MarketingInteraction interaction : nullSafe(interacciones)) {
+            if (esContacto(interaction) && esRespuesta(interaction)) ids.add(interaction.getClientId());
+        }
+        return ids;
+    }
+
+    /** Respuesta: texto de respuesta registrado o tipo click, inquiry, purchase o testimonial. */
     public static boolean esRespuesta(MarketingInteraction interaction) {
         return interaction.getResponse() != null
                 || (interaction.getInteractionType() != null
@@ -189,9 +220,8 @@ public class KpiCalculationService {
         Map<String, LocalDateTime> ultima = new LinkedHashMap<>();
         Map<String, Long> cantidad = new LinkedHashMap<>();
         for (MarketingInteraction interaction : interacciones) {
-            if (interaction.getClientId() == null) continue;
             // Un correo omitido por el limite diario nunca salio: no es un contacto.
-            if (DeliveryStatus.SKIPPED_LIMIT.name().equals(interaction.getDeliveryStatus())) continue;
+            if (!esContacto(interaction)) continue;
             if (soloRespuestas && !esRespuesta(interaction)) continue;
             String clientId = interaction.getClientId();
             cantidad.merge(clientId, 1L, Long::sum);

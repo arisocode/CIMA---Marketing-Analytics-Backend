@@ -18,6 +18,8 @@ import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 @Service
 public class ProposalService {
 
+    private static final int LONGITUD_PROJECT_ID = 36;
+
     private final ProposalRepository proposalRepository;
     private final ClientRepository clientRepository;
     private final ProposalMapper proposalMapper;
@@ -94,6 +96,28 @@ public class ProposalService {
         if (nuevo == Proposal.ProposalStatus.Approved || nuevo == Proposal.ProposalStatus.Rejected) {
             existing.setResponseDate(LocalDate.now());
         }
+        existing.setUpdatedAt(LocalDateTime.now());
+        return proposalMapper.toResponse(proposalRepository.save(existing));
+    }
+
+    /**
+     * Vincula la propuesta con el proyecto de CIMAxios que se creo a partir de ella.
+     * Solo aplica a propuestas aprobadas; projectId null (o vacio) desvincula.
+     */
+    @Transactional
+    public ProposalResponse linkProject(Integer id, String projectId) {
+        Proposal existing = requireProposal(id);
+        if (existing.getStatus() != Proposal.ProposalStatus.Approved) {
+            throw new IllegalArgumentException(
+                    "Solo se puede vincular un proyecto a una propuesta aprobada. Estado actual: "
+                    + (existing.getStatus() != null ? existing.getStatus().name() : "sin estado"));
+        }
+        String valor = projectId == null || projectId.isBlank() ? null : projectId.trim();
+        if (valor != null && valor.length() > LONGITUD_PROJECT_ID) {
+            throw new IllegalArgumentException(
+                    "El identificador del proyecto admite máximo " + LONGITUD_PROJECT_ID + " caracteres");
+        }
+        existing.setProjectId(valor);
         existing.setUpdatedAt(LocalDateTime.now());
         return proposalMapper.toResponse(proposalRepository.save(existing));
     }

@@ -1,6 +1,6 @@
 {
   "service": "marketing",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "endpoints": [
     {
       "endpoint": "/api/v1/marketing/campaigns",
@@ -87,6 +87,12 @@
       "openapi_ref": "PATCH /api/marketing/proposals/{id}/status"
     },
     {
+      "endpoint": "/api/v1/marketing/proposals/{id}/project",
+      "method": "PATCH",
+      "backend_url": "/api/v1/marketing/proposals/{id}/project",
+      "openapi_ref": "PATCH /api/marketing/proposals/{id}/project"
+    },
+    {
       "endpoint": "/api/v1/marketing/interactions",
       "method": "GET",
       "backend_url": "/api/v1/marketing/interactions",
@@ -167,6 +173,40 @@
       "method": "PATCH",
       "backend_url": "/api/v1/marketing/clients/{clientId}/plan",
       "openapi_ref": "PATCH /api/marketing/clients/{clientId}/plan"
+    },
+    {
+      "endpoint": "/api/v1/marketing/clients/{clientId}/timeline",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/clients/{clientId}/timeline",
+      "openapi_ref": "GET /api/marketing/clients/{clientId}/timeline"
+    },
+    {
+      "endpoint": "/api/v1/marketing/funnel",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/funnel",
+      "openapi_ref": "GET /api/marketing/funnel",
+      "input_query_strings": [
+        "period"
+      ]
+    },
+    {
+      "endpoint": "/api/v1/marketing/funnel/{stageKey}/clients",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/funnel/{stageKey}/clients",
+      "openapi_ref": "GET /api/marketing/funnel/{stageKey}/clients",
+      "input_query_strings": [
+        "period"
+      ]
+    },
+    {
+      "endpoint": "/api/v1/marketing/today",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/today",
+      "openapi_ref": "GET /api/marketing/today",
+      "input_query_strings": [
+        "daysWithoutContact",
+        "daysWithoutResponse"
+      ]
     },
     {
       "endpoint": "/api/v1/marketing/segments/preview",

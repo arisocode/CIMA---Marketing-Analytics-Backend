@@ -37,6 +37,7 @@ Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:280
 | `PUT` | `/api/v1/marketing/proposals/{id}` | `/api/v1/marketing/proposals/{id}` | Modifica los términos o valores de una propuesta. |
 | `DELETE`| `/api/v1/marketing/proposals/{id}` | `/api/v1/marketing/proposals/{id}` | Elimina una propuesta comercial. |
 | `PATCH` | `/api/v1/marketing/proposals/{id}/status` | `/api/v1/marketing/proposals/{id}/status` | Actualiza el estado de la propuesta (`ACCEPTED`, `DECLINED`, etc.). |
+| `PATCH` | `/api/v1/marketing/proposals/{id}/project` | `/api/v1/marketing/proposals/{id}/project` | `{projectId}` vincula el proyecto de CIMAxios (solo propuestas `Approved`); `projectId: null` desvincula. `ProposalResponse` incluye `projectId`. |
 
 ### C. Interacciones (`/interactions`)
 | Método | Endpoint Público KrakenD | Backend Interno | Descripción |
@@ -52,7 +53,7 @@ Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:280
 ### D. Gestión de Clientes y Planes (`/clients`)
 | Método | Endpoint Público KrakenD | Backend Interno | Descripción |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/marketing/clients` | `/api/v1/marketing/clients` | Lista de clientes sincronizados para marketing. |
+| `GET` | `/api/v1/marketing/clients` | `/api/v1/marketing/clients` | Lista de clientes sincronizados para marketing, con `score` (puntaje de interés 0–100). `/sin-plan` y `/plan/{plan}` también lo traen. |
 | `GET` | `/api/v1/marketing/clients/sin-plan` | `/api/v1/marketing/clients/sin-plan` | Clientes activos sin un plan asignado. |
 | `GET` | `/api/v1/marketing/clients/plan/{plan}` | `/api/v1/marketing/clients/plan/{plan}` | Filtra clientes por categoría de plan contratado. |
 | `PATCH` | `/api/v1/marketing/clients/plans` | `/api/v1/marketing/clients/plans` | Asignación masiva de planes a clientes. |
@@ -116,6 +117,18 @@ Las interacciones exponen `deliveryStatus` y `deliveryError`.
 | `POST` | `/api/v1/marketing/templates/{templateId}/preview` | `/api/v1/marketing/templates/{templateId}/preview` | `{clientId}` → `{subject, body}` con las variables reemplazadas. |
 
 Variables: `{nombre}`, `{plan}`, `{empresa}` y `{workflow}`. Un workflow acepta `templateId` opcional; si lo tiene y la plantilla está activa, el mensaje y el asunto del correo salen de ella.
+
+### I. Flujo Comercial (admin y worker)
+| Método | Endpoint Público KrakenD | Backend Interno | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/marketing/funnel?period=YYYY-MM` | `/api/v1/marketing/funnel` | Embudo `{period, stages[{key,label,count}], conversionPercent[]}`. Sin `period` = acumulado histórico. |
+| `GET` | `/api/v1/marketing/funnel/{stageKey}/clients?period=` | `/api/v1/marketing/funnel/{stageKey}/clients` | Clientes de la etapa `[{clientId,name,plan,lastContact,score}]`, de mayor a menor puntaje. |
+| `GET` | `/api/v1/marketing/clients/{clientId}/timeline` | `/api/v1/marketing/clients/{clientId}/timeline` | Ficha 360°: `{client, stats, events}`; eventos `PLAN`, `CAMPAIGN`, `MESSAGE`, `RESPONSE`, `PROPOSAL`, `PROPOSAL_DECISION`, `PROJECT` en orden descendente. 404 si no existe. |
+| `GET` | `/api/v1/marketing/today?daysWithoutContact=15&daysWithoutResponse=7` | `/api/v1/marketing/today` | Panel Hoy: clientes sin contacto, propuestas sin respuesta y aprobadas sin proyecto (máx. 20 por lista; `counts` con el total). |
+
+Etapas del embudo (`stageKey`): `clients`, `contacted`, `responded`, `proposal_sent`, `approved`, `project`. Contacto = interacción que no es `SKIPPED_LIMIT`; respuesta = `KpiCalculationService.esRespuesta`. Con `period`, contactados y respondieron usan las mismas interacciones del mes que el KPI, así que coinciden con `clientsContacted` y `responseRate`. `conversionPercent[i] = count[i+1] / count[i] × 100` (null si `count[i]` es 0).
+
+Puntaje de interés (`InterestScore`): +30 si respondió en los últimos 30 días, +20 con propuesta abierta (`Sent`/`In_negotiation`), +30 con propuesta `Approved`, +20 con proyecto, −1 por cada día sin contacto por encima de 15; acotado a 0–100.
 
 ## 3. Endpoints de Integración CRM (`/api/v1/integration/*`)
 
