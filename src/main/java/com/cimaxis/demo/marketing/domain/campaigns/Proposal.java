@@ -58,6 +58,14 @@ public class Proposal {
     @Column(name = "project_id", length = 36)
     private String projectId;
 
+    /** Comentario del cliente al aceptar o rechazar desde el portal. */
+    @Column(name = "client_comment", columnDefinition = "TEXT")
+    private String clientComment;
+
+    /** Momento en que el cliente decidio desde el portal (null si decidio CIMA o no hay decision). */
+    @Column(name = "decided_at")
+    private LocalDateTime decidedAt;
+
     @Column(name = "created_date")
     private LocalDate createdDate;
 

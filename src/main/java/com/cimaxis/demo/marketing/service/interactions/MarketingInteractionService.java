@@ -58,8 +58,8 @@ public class MarketingInteractionService {
     @Transactional
     public MarketingInteractionResponse registerManual(MarketingInteractionRequest request,
                                                        String loggedBy) {
-        if (request.getCampaignId() == null
-                || !campaignRepository.existsById(request.getCampaignId())) {
+        // La campana es opcional (campaign_id nullable); si viene, debe existir.
+        if (request.getCampaignId() != null && !campaignRepository.existsById(request.getCampaignId())) {
             throw new ResourceNotFoundException("La campana indicada no existe");
         }
 

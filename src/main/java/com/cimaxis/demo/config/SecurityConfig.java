@@ -46,6 +46,9 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/_gateway/**").permitAll()
                 .requestMatchers("/api/v1/.well-known/**").permitAll()
+                // Portal del cliente: debe ir ANTES de la regla general de marketing.
+                // El clientId sale siempre de la autenticacion (X-User-Sub).
+                .requestMatchers("/api/v1/marketing/me", "/api/v1/marketing/me/**").hasRole("client")
                 // Marketing and analytics expose commercial and cross-client data.
                 // They are operational back-office capabilities, not client-facing
                 // resources; enforce this policy at the service boundary as well

@@ -47,7 +47,11 @@ Ubicado en `src/main/java/com/cimaxis/demo/security/JwtAuthenticationFilter.java
 | :--- | :--- | :--- |
 | **`admin`** | `ROLE_admin` | Acceso total: creación, modificación y eliminación de campañas, propuestas, flujos y reportes. |
 | **`worker`** | `ROLE_worker` | Gestión operativa: creación de propuestas, registro de interacciones, consulta de campañas y KPIs. |
-| **`client`** | `ROLE_client` | Acceso restringido: consulta exclusiva de campañas y propuestas vinculadas a su propio `clientId`. |
+| **`client`** | `ROLE_client` | Solo el portal `/api/v1/marketing/me/**`: sus propuestas (ver y decidir), su conversación con CIMA y su resumen. Recibe 403 en el resto de marketing, analítica e integración. |
+
+Reglas de `SecurityConfig` (el orden importa): `/api/v1/marketing/me/**` → solo `client`; después `/api/v1/marketing/**`, `/api/v1/analytics/**` e `/api/v1/integration/**` → `admin` y `worker`. Admin y worker reciben 403 en `/me/**`.
+
+En el portal el `clientId` es siempre el `X-User-Sub` autenticado (el `clientId` de `clients` es el subject de crm-auth), nunca un dato de la URL o del cuerpo. Una propuesta de otro cliente, o en diagnóstico, responde 404 para no revelar que existe. Si el usuario aún no tiene cliente sincronizado responde 404 con "Tu cuenta aún no está sincronizada con marketing".
 
 ---
 

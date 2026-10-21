@@ -55,6 +55,18 @@ class NotificationDispatcherTest {
     }
 
     @Test
+    void notifyAdminDirectoUsaElAsuntoIndicado() {
+        ReflectionTestUtils.setField(dispatcher, "adminRecipient", "operaciones@example.test");
+        when(emailService.send("operaciones@example.test", "Propuesta aceptada por Ana (#3)",
+                "Detalle", EmailService.ORIGEN_ALERTA))
+                .thenReturn(DispatchResult.queued("email", "Encolado"));
+
+        DispatchResult result = dispatcher.notifyAdmin("Propuesta aceptada por Ana (#3)", "Detalle");
+
+        assertThat(result).isEqualTo(new DispatchResult("admin_notification", true, "Encolado", DeliveryStatus.QUEUED));
+    }
+
+    @Test
     void sendEmailUsesTheSubjectFromTheTemplate() {
         Map<String, Object> cliente = Map.of("email", "ana@test.com");
         when(crmIntegrationService.extractClientEmail(cliente)).thenReturn("ana@test.com");

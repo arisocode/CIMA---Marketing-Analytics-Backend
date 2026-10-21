@@ -44,6 +44,8 @@ Este documento describe el modelo relacional en PostgreSQL, la configuración de
 - **`MARKETING_EMAIL_DELIVERIES`**: Registro de cada intento de correo (QUEUED, FAILED, SIMULATED, SKIPPED_LIMIT); con él se calcula el cupo diario (zona America/Bogota).
 - Columnas nuevas: `marketing_interactions.delivery_status`, `marketing_interactions.delivery_error` y `workflows.template_id`.
 - `PROPOSALS.project_id` (varchar 36, nullable): proyecto de CIMAxios vinculado a una propuesta aprobada. Script opcional: `scripts/2026-10-21-propuesta-proyecto.sql`.
+- **`MARKETING_MESSAGES`**: Conversación comercial CIMA ↔ cliente (`direction` OUTBOUND/INBOUND, `body` máx. 4000, `read_at`).
+- `marketing_interactions.campaign_id` es nullable (mensajes del portal y decisiones de propuestas); `proposals.client_comment` y `proposals.decided_at`. Script obligatorio: `scripts/2026-10-21-portal-cliente.sql` (ddl-auto no quita el NOT NULL).
 - Migración manual: `scripts/2026-10-19-planes-correos-plantillas.sql` (quita el CHECK de `clients.plan` y registra planes heredados como inactivos).
 
 ---

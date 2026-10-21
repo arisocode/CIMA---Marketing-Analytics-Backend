@@ -59,6 +59,8 @@ public class EmailService {
     public static final String ORIGEN_WORKFLOW = "WORKFLOW";
     public static final String ORIGEN_ALERTA = "ADMIN_ALERT";
     public static final String ORIGEN_PRUEBA = "TEST";
+    public static final String ORIGEN_PORTAL = "PORTAL";
+    public static final String ORIGEN_PROPUESTA = "PROPOSAL";
 
     private final ServiceJwtSigner jwtSigner;
     private final JsonMapper jsonMapper;
