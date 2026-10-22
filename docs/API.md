@@ -178,13 +178,15 @@ Cada mensaje y cada decisión del portal queda como interacción con `channel = 
 | `GET` | `/api/v1/analytics/kpis/period/{period}` | `/api/v1/analytics/kpis/period/{period}` | KPIs para un período específico (ej. `2026-09`). |
 | `GET` | `/api/v1/analytics/kpis/current/{period}`| `/api/v1/analytics/kpis/current/{period}` | KPI actual para un período. |
 | `POST` | `/api/v1/analytics/kpis/calculate/{period}`| `/api/v1/analytics/kpis/calculate/{period}` | Recálculo de KPIs para un período específico. |
-| `GET` | `/api/v1/analytics/export/kpis` | `/api/v1/analytics/export/kpis` | Exportación CSV/Excel de KPIs. |
-| `GET` | `/api/v1/analytics/export/campaigns` | `/api/v1/analytics/export/campaigns` | Exportación de métricas de campañas. |
-| `GET` | `/api/v1/analytics/export/low-stock` | `/api/v1/analytics/export/low-stock` | Exportación de reporte de inventario bajo. |
+| `GET` | `/api/v1/analytics/export/kpis?format=xlsx\|pdf&period=` | `/api/v1/analytics/export/kpis` | Reporte de indicadores: resumen del último período con variación, historial y definiciones (Excel incluye hoja "Definiciones"). |
+| `GET` | `/api/v1/analytics/export/campaigns?format=xlsx\|pdf` | `/api/v1/analytics/export/campaigns` | Reporte de campañas: resumen por estado y tipo, y una fila por campaña con el nombre del cliente. |
+| `GET` | `/api/v1/analytics/export/low-stock?format=xlsx\|pdf` | `/api/v1/analytics/export/low-stock` | Alertas de inventario. |
 | `GET` | `/api/v1/analytics/kpis/{kpi}/detail?period=` | `/api/v1/analytics/kpis/{kpi}/detail` | Registros que componen un KPI del período (por defecto el mes actual). |
 | `GET` | `/api/v1/analytics/kpis/compare?period=` | `/api/v1/analytics/kpis/compare` | Los ocho KPIs del período frente al mes anterior (`deltaPercent` es `null` si el anterior es 0). |
 | `GET` | `/api/v1/analytics/projects?status=&clientId=` | `/api/v1/analytics/projects` | Proyectos de la proyección local con su cliente y el valor aprobado del cliente. |
 | `GET` | `/api/v1/analytics/export/kpis/{kpi}/detail?period=&format=` | `/api/v1/analytics/export/kpis/{kpi}/detail` | Exporta el detalle de un KPI en `xlsx` o `pdf`. |
+
+Formato de los reportes descargables (`analytics/report`): PDF A4 horizontal con banda de marca CIMA (logo de `cimaxis.mail.logo-url` o el texto "CIMA"), pie "Generado por CIMAxis · Página X de Y" y la página "No hay datos para el período seleccionado" cuando no hay datos. Valores en español de Colombia (`ReportFormatter`): `$ 4.500.000`, `26,67 %`, `19,0 días`, `22 de octubre de 2026, 4:36 p. m.`, `Octubre 2026`, tipos y estados traducidos. En Excel los números son reales: moneda `$ #,##0`, porcentaje `0.00 %` (se guarda 0,2667), enteros `0`, días `0.0`; encabezado inmovilizado y autofiltro.
 
 **Detalle de KPIs.** `{kpi}` ∈ `new_clients`, `closed_projects`, `revenue`, `active_campaigns`, `clients_contacted`, `response_rate`, `avg_close_days`, `projects_in_progress`. La respuesta es `{ kpi, period, total, kpiValue, items: [{ id, title, subtitle, date, value, status, clientId, clientName }] }`:
 - `total` es el número de registros listados y `kpiValue` es el valor de la tarjeta.

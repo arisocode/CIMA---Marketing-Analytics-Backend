@@ -7,10 +7,10 @@ public enum KpiType {
     NEW_CLIENTS("new_clients", "Clientes nuevos"),
     CLOSED_PROJECTS("closed_projects", "Proyectos cerrados"),
     REVENUE("revenue", "Ingresos estimados"),
-    ACTIVE_CAMPAIGNS("active_campaigns", "Campanas activas"),
+    ACTIVE_CAMPAIGNS("active_campaigns", "Campañas activas"),
     CLIENTS_CONTACTED("clients_contacted", "Clientes contactados"),
     RESPONSE_RATE("response_rate", "Tasa de respuesta"),
-    AVG_CLOSE_DAYS("avg_close_days", "Dias promedio de cierre"),
+    AVG_CLOSE_DAYS("avg_close_days", "Días promedio de cierre"),
     PROJECTS_IN_PROGRESS("projects_in_progress", "Proyectos en curso");
 
     private final String key;
