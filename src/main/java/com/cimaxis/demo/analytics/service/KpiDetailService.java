@@ -93,9 +93,9 @@ public class KpiDetailService {
                             nombreCliente(clientes.get(c.getClientId()), c.getClientId())))
                     .toList();
 
-            case CLIENTS_CONTACTED -> itemsContacto(seleccion.contactedClients(), clientes, "interaccion(es)");
+            case CLIENTS_CONTACTED -> itemsContacto(seleccion.contactedClients(), clientes, "interacción", "interacciones");
 
-            case RESPONSE_RATE -> itemsContacto(seleccion.respondedClients(), clientes, "respuesta(s)");
+            case RESPONSE_RATE -> itemsContacto(seleccion.respondedClients(), clientes, "respuesta", "respuestas");
 
             case AVG_CLOSE_DAYS -> seleccion.closeTimes().stream()
                     .map(t -> itemProyecto(t.project(), clientes, BigDecimal.valueOf(t.days())))
@@ -202,7 +202,7 @@ public class KpiDetailService {
     }
 
     private List<KpiDetailItemDto> itemsContacto(List<KpiSelection.ClientContact> contactos,
-                                                 Map<String, Client> clientes, String unidad) {
+                                                 Map<String, Client> clientes, String singular, String plural) {
         return contactos.stream()
                 .sorted(Comparator.comparing(KpiSelection.ClientContact::lastDate,
                         Comparator.nullsLast(Comparator.reverseOrder())))
@@ -210,7 +210,7 @@ public class KpiDetailService {
                     String nombre = nombreCliente(clientes.get(c.clientId()), c.clientId());
                     Client cliente = clientes.get(c.clientId());
                     return new KpiDetailItemDto(c.clientId(), nombre,
-                            c.interactions() + " " + unidad,
+                            c.interactions() + " " + (c.interactions() == 1 ? singular : plural),
                             c.lastDate(),
                             BigDecimal.valueOf(c.interactions()),
                             cliente != null ? cliente.getPlan() : null,

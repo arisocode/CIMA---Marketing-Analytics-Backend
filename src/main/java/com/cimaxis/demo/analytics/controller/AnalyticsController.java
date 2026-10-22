@@ -1,8 +1,6 @@
 package com.cimaxis.demo.analytics.controller;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
@@ -25,13 +23,13 @@ import com.cimaxis.demo.analytics.dto.ClientPlanDistributionDto;
 import com.cimaxis.demo.analytics.dto.InventoryAlertDto;
 import com.cimaxis.demo.analytics.dto.KpiComparisonDto;
 import com.cimaxis.demo.analytics.dto.KpiDetailDto;
-import com.cimaxis.demo.analytics.dto.KpiDetailItemDto;
 import com.cimaxis.demo.analytics.dto.KpiSnapshotDto;
 import com.cimaxis.demo.analytics.dto.ProjectAnalyticsDto;
 import com.cimaxis.demo.analytics.service.AnalyticsService;
 import com.cimaxis.demo.analytics.service.KpiCalculationService;
 import com.cimaxis.demo.analytics.service.KpiDetailService;
-import com.cimaxis.demo.analytics.service.KpiType;
+import com.cimaxis.demo.analytics.report.CampaignReportRow;
+import com.cimaxis.demo.analytics.report.CampaignReportService;
 import com.cimaxis.demo.analytics.service.ReportExportService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,6 +46,7 @@ public class AnalyticsController {
     private final KpiCalculationService kpiCalculationService;
     private final KpiDetailService kpiDetailService;
     private final ReportExportService reportExportService;
+    private final CampaignReportService campaignReportService;
 
     @GetMapping("/summary")
     public ResponseEntity<AnalyticsSummaryDto> getSummary() {
@@ -157,28 +156,13 @@ public class AnalyticsController {
                                                   @RequestParam(required = false) String period,
                                                   @RequestParam(defaultValue = "xlsx") String format) {
         KpiDetailDto detalle = kpiDetailService.getDetail(kpi, period);
-        String etiqueta = KpiType.fromKey(kpi).label();
-
-        List<String> headers = List.of("Elemento", "Detalle", "Fecha", "Valor", "Estado", "Cliente");
-        DateTimeFormatter fecha = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-        List<List<Object>> rows = detalle.items().stream()
-                .map((KpiDetailItemDto item) -> Arrays.<Object>asList(
-                        item.title(),
-                        item.subtitle(),
-                        item.date() != null ? item.date().format(fecha) : "",
-                        item.value(),
-                        item.status(),
-                        item.clientName()))
-                .toList();
 
         String archivo = "kpi-" + detalle.kpi() + "-" + detalle.period();
         if ("pdf".equalsIgnoreCase(format)) {
-            return descarga(reportExportService.toPdf(
-                            etiqueta + " - " + detalle.period() + " (" + detalle.total() + " registros) - CIMAxis",
-                            headers, rows),
+            return descarga(reportExportService.kpiDetailToPdf(detalle),
                     archivo + ".pdf", MediaType.APPLICATION_PDF);
         }
-        return descarga(reportExportService.toExcel("Detalle", headers, rows),
+        return descarga(reportExportService.kpiDetailToExcel(detalle),
                 archivo + ".xlsx",
                 MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
@@ -194,7 +178,11 @@ public class AnalyticsController {
                 : analyticsService.getKpiSnapshots();
 
         if ("pdf".equalsIgnoreCase(format)) {
-            return descarga(reportExportService.kpisToPdf(data),
+            // Con un solo periodo, las variaciones se comparan con el mes anterior.
+            KpiSnapshotDto anterior = period != null
+                    ? kpiCalculationService.calculate(kpiCalculationService.resolvePeriod(period).minusMonths(1).toString())
+                    : null;
+            return descarga(reportExportService.kpisToPdf(data, anterior),
                     "kpis-cimaxis.pdf", MediaType.APPLICATION_PDF);
         }
         return descarga(reportExportService.kpisToExcel(data),
@@ -206,16 +194,13 @@ public class AnalyticsController {
     @GetMapping("/export/campaigns")
     public ResponseEntity<byte[]> exportCampaigns(@RequestParam(defaultValue = "xlsx") String format) {
 
-        List<String> headers = List.of("Estado", "Cantidad de campanas");
-        List<List<Object>> rows = analyticsService.getCampaignStatusReport(null, null, null).stream()
-                .map(dto -> List.<Object>of(dto.getStatus(), dto.getCampaignCount()))
-                .toList();
+        List<CampaignReportRow> campanas = campaignReportService.rows();
 
         if ("pdf".equalsIgnoreCase(format)) {
-            return descarga(reportExportService.toPdf("Campanas por estado - CIMAxis", headers, rows),
+            return descarga(reportExportService.campaignsToPdf(campanas),
                     "campanas-cimaxis.pdf", MediaType.APPLICATION_PDF);
         }
-        return descarga(reportExportService.toExcel("Campanas", headers, rows),
+        return descarga(reportExportService.campaignsToExcel(campanas),
                 "campanas-cimaxis.xlsx",
                 MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
@@ -224,20 +209,13 @@ public class AnalyticsController {
     @GetMapping("/export/low-stock")
     public ResponseEntity<byte[]> exportLowStock(@RequestParam(defaultValue = "xlsx") String format) {
 
-        List<String> headers = List.of("Producto", "Stock total", "Stock punto de venta", "Umbral de alerta");
-        List<List<Object>> rows = analyticsService.getLowStockAlerts().stream()
-                .map(dto -> java.util.Arrays.<Object>asList(
-                        dto.getProductName(),
-                        dto.getTotalStock(),
-                        dto.getPointOfSaleStock(),
-                        dto.getLowStockAlert()))
-                .toList();
+        List<InventoryAlertDto> alertas = analyticsService.getLowStockAlerts();
 
         if ("pdf".equalsIgnoreCase(format)) {
-            return descarga(reportExportService.toPdf("Alertas de inventario - CIMAxis", headers, rows),
+            return descarga(reportExportService.lowStockToPdf(alertas),
                     "inventario-cimaxis.pdf", MediaType.APPLICATION_PDF);
         }
-        return descarga(reportExportService.toExcel("Inventario", headers, rows),
+        return descarga(reportExportService.lowStockToExcel(alertas),
                 "inventario-cimaxis.xlsx",
                 MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));

@@ -19,13 +19,13 @@ import org.springframework.stereotype.Component;
 public class EmailLayoutRenderer {
 
     // Colores de marca (mismos tokens del frontend: --cima-red-800, --cima-red-900, --cima-ink).
-    static final String ROJO_CIMA = "#86070C";
-    static final String ROJO_CIMA_OSCURO = "#680609";
-    static final String TINTA = "#282829";
-    static final String GRIS_TEXTO = "#626267";
-    static final String GRIS_FONDO = "#F7F7F7";
-    static final String FONDO_PAGINA = "#EEEEEE";
-    static final String GRIS_BORDE = "#DEDEDF";
+    public static final String ROJO_CIMA = "#86070C";
+    public static final String ROJO_CIMA_OSCURO = "#680609";
+    public static final String TINTA = "#282829";
+    public static final String GRIS_TEXTO = "#626267";
+    public static final String GRIS_FONDO = "#F7F7F7";
+    public static final String FONDO_PAGINA = "#EEEEEE";
+    public static final String GRIS_BORDE = "#DEDEDF";
 
     private static final String FIRMA = "Este mensaje fue enviado desde CIMAxis, la plataforma comercial de CIMA.";
 
