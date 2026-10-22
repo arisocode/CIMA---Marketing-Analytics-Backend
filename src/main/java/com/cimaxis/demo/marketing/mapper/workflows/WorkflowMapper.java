@@ -26,6 +26,7 @@ public class WorkflowMapper {
                 .triggerType(workflow.getTriggerType() != null
                         ? workflow.getTriggerType().name() : null)
                 .noContactDays(workflow.getNoContactDays())
+                .scheduledAt(workflow.getScheduledAt())
                 .actionType(workflow.getActionType() != null
                         ? workflow.getActionType().name() : null)
                 .messageTemplate(workflow.getMessageTemplate())
@@ -49,6 +50,7 @@ public class WorkflowMapper {
                 .description(request.getDescription())
                 .triggerType(parseTrigger(request.getTriggerType()))
                 .noContactDays(request.getNoContactDays())
+                .scheduledAt(request.getScheduledAt())
                 .actionType(parseAction(request.getActionType()))
                 .messageTemplate(request.getMessageTemplate())
                 .templateId(request.getTemplateId())
@@ -61,6 +63,7 @@ public class WorkflowMapper {
         destino.setDescription(request.getDescription());
         destino.setTriggerType(parseTrigger(request.getTriggerType()));
         destino.setNoContactDays(request.getNoContactDays());
+        destino.setScheduledAt(request.getScheduledAt());
         destino.setActionType(parseAction(request.getActionType()));
         destino.setMessageTemplate(request.getMessageTemplate());
         destino.setTemplateId(request.getTemplateId());

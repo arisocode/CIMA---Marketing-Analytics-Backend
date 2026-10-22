@@ -16,6 +16,9 @@ public interface CampaignRepository extends JpaRepository<Campaign, Integer> {
 
     List<Campaign> findByClientId(String clientId);
 
+    /** Campañas que usan un segmento guardado en un estado dado (p. ej. activas). */
+    List<Campaign> findBySegmentIdAndStatus(java.util.UUID segmentId, Campaign.CampaignStatus status);
+
     List<Campaign> findByStatus(Campaign.CampaignStatus status);
     long countByStatus(Campaign.CampaignStatus status);
 

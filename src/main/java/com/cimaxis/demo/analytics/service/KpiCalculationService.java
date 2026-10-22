@@ -65,6 +65,8 @@ public class KpiCalculationService {
             Set.of("in_progress", "in_review", "in progress", "active",
                     "en progreso", "activo", "en curso");
 
+    public static final String CANAL_WHATSAPP = "whatsapp";
+
     /** Tipos de interaccion que se cuentan como respuesta del cliente. */
     private static final List<MarketingInteraction.InteractionType> TIPOS_RESPUESTA = List.of(
             MarketingInteraction.InteractionType.click,
@@ -181,13 +183,24 @@ public class KpiCalculationService {
 
     /**
      * Contacto: interaccion con cliente que no fue omitida por el limite diario de
-     * correos (SKIPPED_LIMIT nunca salio). Es la misma definicion que usan el KPI
+     * correos (SKIPPED_LIMIT nunca salio) ni es un WhatsApp aun sin enviar. Es la misma definicion que usan el KPI
      * de clientes contactados, el embudo comercial y el puntaje de interes.
      */
     public static boolean esContacto(MarketingInteraction interaction) {
         return interaction != null
                 && interaction.getClientId() != null
-                && !DeliveryStatus.SKIPPED_LIMIT.name().equals(interaction.getDeliveryStatus());
+                && !DeliveryStatus.SKIPPED_LIMIT.name().equals(interaction.getDeliveryStatus())
+                && !esWhatsappPendiente(interaction);
+    }
+
+    /**
+     * WhatsApp preparado por un workflow que todavia nadie envio (canal whatsapp,
+     * SIMULATED). No es contacto hasta que el equipo lo marca SENT_MANUAL.
+     */
+    public static boolean esWhatsappPendiente(MarketingInteraction interaction) {
+        return interaction != null
+                && CANAL_WHATSAPP.equalsIgnoreCase(String.valueOf(interaction.getChannel()))
+                && DeliveryStatus.SIMULATED.name().equals(interaction.getDeliveryStatus());
     }
 
     /** Clientes distintos con al menos un contacto en la lista (orden de aparicion). */

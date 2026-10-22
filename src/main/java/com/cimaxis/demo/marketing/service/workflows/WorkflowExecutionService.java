@@ -112,7 +112,7 @@ public class WorkflowExecutionService {
             if (clientId == null) continue;
             if (!canDispatch(workflowId, clientId)) continue;
 
-            results.add(runSingle(workflow, clientId, client, loggedByUserId));
+            results.add(runSingle(workflow, clientId, client, loggedByUserId).execution());
         }
         return executionMapper.toResponseList(results);
     }
@@ -131,7 +131,7 @@ public class WorkflowExecutionService {
         }
 
         return executionMapper.toResponse(
-                runSingle(workflow, clientId, resolveClientData(clientId, bearerToken), loggedByUserId));
+                runSingle(workflow, clientId, resolveClientData(clientId, bearerToken), loggedByUserId).execution());
     }
 
     /**
@@ -145,9 +145,22 @@ public class WorkflowExecutionService {
         for (String clientId : clientIds) {
             if (clientId == null) continue;
             if (!canDispatch(workflow.getWorkflowId(), clientId)) continue;
-            results.add(runSingle(workflow, clientId, resolveClientData(clientId, bearerToken), loggedByUserId));
+            results.add(runSingle(workflow, clientId, resolveClientData(clientId, bearerToken), loggedByUserId).execution());
         }
         return results;
+    }
+
+    /** Ejecucion guardada y resultado de la accion (canal, estado de entrega y detalle). */
+    public record RunOutcome(WorkflowExecution execution, DispatchResult dispatch) {
+    }
+
+    /**
+     * Ejecuta la accion para un cliente que ya paso las reglas de
+     * WorkflowEligibilityService (planificador y "ejecutar ahora"); aqui no se
+     * vuelven a evaluar.
+     */
+    public RunOutcome runFor(Workflow workflow, String clientId, String bearerToken, String loggedByUserId) {
+        return runSingle(workflow, clientId, resolveClientData(clientId, bearerToken), loggedByUserId);
     }
 
     public List<WorkflowExecutionResponse> getExecutionsByWorkflow(Integer workflowId) {
@@ -199,7 +212,7 @@ public class WorkflowExecutionService {
         return fecha.equals(LocalDate.now(EmailService.ZONA_CIMA));
     }
 
-    private WorkflowExecution runSingle(Workflow workflow,
+    private RunOutcome runSingle(Workflow workflow,
                                         String clientId,
                                         Map<String, Object> clientData,
                                         String loggedByUserId) {
@@ -240,12 +253,13 @@ public class WorkflowExecutionService {
 
         final DispatchResult finalDispatch = dispatch;
         final WorkflowExecution toPersist = execution;
-        return executeInTransaction(status -> {
+        WorkflowExecution guardada = executeInTransaction(status -> {
             WorkflowExecution saved = executionRepository.save(toPersist);
             registrarInteraccion(workflow, clientId, saved.getExecutionId(),
                     loggedByUserId, finalDispatch);
             return saved;
         });
+        return new RunOutcome(guardada, finalDispatch);
     }
 
     private Workflow requireActiveWorkflow(Integer workflowId) {

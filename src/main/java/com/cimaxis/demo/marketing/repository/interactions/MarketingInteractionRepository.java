@@ -19,6 +19,10 @@ public interface MarketingInteractionRepository extends JpaRepository<MarketingI
 
     List<MarketingInteraction> findByExecutionId(Integer executionId);
 
+    /** WhatsApp preparados por workflows y aun sin enviar (channel whatsapp, SIMULATED). */
+    List<MarketingInteraction> findByChannelIgnoreCaseAndDeliveryStatusOrderByContactDateAsc(String channel,
+                                                                                            String deliveryStatus);
+
     /** Ultima interaccion registrada con un cliente */
     MarketingInteraction findTopByClientIdOrderByContactDateDesc(String clientId);
 

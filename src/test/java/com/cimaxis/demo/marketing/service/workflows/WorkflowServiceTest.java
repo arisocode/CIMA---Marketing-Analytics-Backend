@@ -74,6 +74,47 @@ class WorkflowServiceTest {
         verify(templateService, never()).requireActive(any());
     }
 
+    @Test
+    void scheduledDateRequiresScheduledAt() {
+        WorkflowRequest sinFecha = WorkflowRequest.builder().campaignId(20).workflowName("Navidad")
+                .triggerType("scheduled_date").actionType("send_email").build();
+
+        assertThatThrownBy(() -> service.create(sinFecha))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("scheduledAt");
+        verify(workflowRepository, never()).save(any());
+
+        sinFecha.setScheduledAt(LocalDateTime.of(2026, 12, 1, 9, 0));
+        assertThat(service.create(sinFecha).getScheduledAt()).isEqualTo(LocalDateTime.of(2026, 12, 1, 9, 0));
+    }
+
+    @Test
+    void noContactDaysOnlyAppliesToNoContactAndProposalTriggers() {
+        WorkflowRequest manual = WorkflowRequest.builder().campaignId(20).workflowName("Manual")
+                .triggerType("manual").actionType("send_email").noContactDays(15).build();
+        assertThatThrownBy(() -> service.create(manual))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("noContactDays solo aplica");
+
+        WorkflowRequest propuesta = WorkflowRequest.builder().campaignId(20).workflowName("Propuesta")
+                .triggerType("proposal_no_response").actionType("send_portal_message").noContactDays(7).build();
+        WorkflowResponse creado = service.create(propuesta);
+        assertThat(creado.getNoContactDays()).isEqualTo(7);
+        assertThat(creado.getActionType()).isEqualTo("send_portal_message");
+
+        WorkflowRequest cero = WorkflowRequest.builder().campaignId(20).workflowName("Cero")
+                .triggerType("no_contact_x_days").actionType("send_email").noContactDays(0).build();
+        assertThatThrownBy(() -> service.create(cero)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void scheduledAtIsDiscardedForOtherTriggers() {
+        WorkflowRequest otro = WorkflowRequest.builder().campaignId(20).workflowName("Manual")
+                .triggerType("manual").actionType("send_email").scheduledAt(LocalDateTime.of(2026, 12, 1, 9, 0)).build();
+
+        assertThat(service.create(otro).getScheduledAt()).isNull();
+    }
+
     private static WorkflowRequest request(UUID templateId) {
         return WorkflowRequest.builder().campaignId(20).workflowName("Bienvenida")
                 .triggerType("manual").actionType("send_email").messageTemplate("Hola {nombre}")

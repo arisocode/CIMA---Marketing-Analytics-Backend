@@ -44,6 +44,10 @@ public class Workflow {
     @Column(name = "trigger_type", nullable = false)
     private TriggerType triggerType;
 
+    /** Fecha y hora (America/Bogota) del disparador scheduled_date. */
+    @Column(name = "scheduled_at")
+    private LocalDateTime scheduledAt;
+
     @Column(name = "no_contact_days")
     private Integer noContactDays;
 
@@ -74,6 +78,6 @@ public class Workflow {
     }
 
     public enum ActionType {
-        send_email, send_whatsapp, log_followup, notify_admin
+        send_email, send_whatsapp, log_followup, notify_admin, send_portal_message
     }
 }

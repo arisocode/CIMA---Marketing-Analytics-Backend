@@ -20,6 +20,8 @@ public class WorkflowRequest {
     private String description;
     private String triggerType;
     private Integer noContactDays;
+    /** Fecha y hora (America/Bogota) del disparador scheduled_date, p. ej. "2026-12-01T09:00:00". */
+    private java.time.LocalDateTime scheduledAt;
     private String actionType;
     private String messageTemplate;
     /** Plantilla opcional de la biblioteca; si viene, reemplaza a messageTemplate al enviar. */

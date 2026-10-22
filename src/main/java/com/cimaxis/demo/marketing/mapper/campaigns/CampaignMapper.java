@@ -26,7 +26,9 @@ public class CampaignMapper {
                 .campaignName(campaign.getCampaignName())
                 .campaignType(campaign.getCampaignType() != null
                         ? campaign.getCampaignType().name() : null)
+                .audienceType(campaign.audienceOrDefault().name())
                 .clientId(campaign.getClientId())
+                .segmentId(campaign.getSegmentId())
                 .projectId(campaign.getProjectId())
                 .createdBy(campaign.getCreatedBy())
                 .startDate(campaign.getStartDate())
@@ -83,6 +85,19 @@ public class CampaignMapper {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Tipo de campana invalido: " + valor
                     + ". Valores permitidos: " + Arrays.toString(Campaign.CampaignType.values()));
+        }
+    }
+
+    /** CLIENT, SEGMENT o ALL (sin distinguir mayusculas). null o vacio = null. */
+    public Campaign.AudienceType parseAudience(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        try {
+            return Campaign.AudienceType.valueOf(valor.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Audiencia invalida: " + valor
+                    + ". Valores permitidos: " + Arrays.toString(Campaign.AudienceType.values()));
         }
     }
 

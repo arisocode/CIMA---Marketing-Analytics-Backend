@@ -10,24 +10,28 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.cimaxis.demo.integration.crm.service.CrmIntegrationService;
+import com.cimaxis.demo.marketing.domain.messages.MarketingMessage;
 import com.cimaxis.demo.marketing.domain.workflows.Workflow;
+import com.cimaxis.demo.marketing.repository.messages.MarketingMessageRepository;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationDispatcherTest {
 
     @Mock private EmailService emailService;
     @Mock private CrmIntegrationService crmIntegrationService;
+    @Mock private MarketingMessageRepository messageRepository;
 
     private NotificationDispatcher dispatcher;
 
     @BeforeEach
     void setUp() {
-        dispatcher = new NotificationDispatcher(emailService, crmIntegrationService);
+        dispatcher = new NotificationDispatcher(emailService, crmIntegrationService, messageRepository);
     }
 
     @Test
@@ -99,6 +103,34 @@ class NotificationDispatcherTest {
         assertThat(result.channel()).isEqualTo("whatsapp");
         assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.SIMULATED);
         verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void sendPortalMessageCreatesAnOutboundMessageFromEquipoCima() {
+        Map<String, Object> cliente = Map.of("id", "c-1");
+        when(crmIntegrationService.extractClientId(cliente)).thenReturn("c-1");
+
+        DispatchResult result = dispatcher.dispatch(workflow(Workflow.ActionType.send_portal_message), cliente,
+                "Asunto", "Hola Ana, tu propuesta te espera");
+
+        assertThat(result.delivered()).isTrue();
+        assertThat(result.channel()).isEqualTo("portal");
+        ArgumentCaptor<MarketingMessage> captor = ArgumentCaptor.forClass(MarketingMessage.class);
+        verify(messageRepository).save(captor.capture());
+        MarketingMessage mensaje = captor.getValue();
+        assertThat(mensaje.getClientId()).isEqualTo("c-1");
+        assertThat(mensaje.getDirection()).isEqualTo(MarketingMessage.Direction.OUTBOUND);
+        assertThat(mensaje.getAuthorName()).isEqualTo("Equipo CIMA");
+        assertThat(mensaje.getBody()).isEqualTo("Hola Ana, tu propuesta te espera");
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void sendPortalMessageWithoutClientFails() {
+        DispatchResult result = dispatcher.dispatch(workflow(Workflow.ActionType.send_portal_message), Map.of(), "Hola");
+
+        assertThat(result.delivered()).isFalse();
+        verifyNoInteractions(messageRepository);
     }
 
     private Workflow workflow(Workflow.ActionType accion) {

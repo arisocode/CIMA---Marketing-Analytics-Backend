@@ -13,10 +13,12 @@ import com.cimaxis.demo.analytics.domain.Client;
 import com.cimaxis.demo.analytics.repository.ClientRepository;
 import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
+import com.cimaxis.demo.marketing.service.campaigns.CampaignAudienceService;
 import com.cimaxis.demo.marketing.service.commercial.CommercialFacts;
 
 /**
- * Datos del reporte de campañas: una fila por campaña con el nombre del cliente,
+ * Datos del reporte de campañas: una fila por campaña con su audiencia (nombre del
+ * cliente, "Segmento: <nombre>" o "Todos los clientes"),
  * ordenadas por estado (Activa, Pausada, Borrador, Completada, Cancelada) y luego
  * por fecha de inicio.
  */
@@ -29,10 +31,13 @@ public class CampaignReportService {
 
     private final CampaignRepository campaignRepository;
     private final ClientRepository clientRepository;
+    private final CampaignAudienceService audienceService;
 
-    public CampaignReportService(CampaignRepository campaignRepository, ClientRepository clientRepository) {
+    public CampaignReportService(CampaignRepository campaignRepository, ClientRepository clientRepository,
+                                 CampaignAudienceService audienceService) {
         this.campaignRepository = campaignRepository;
         this.clientRepository = clientRepository;
+        this.audienceService = audienceService;
     }
 
     public List<CampaignReportRow> rows() {
@@ -51,7 +56,7 @@ public class CampaignReportService {
                 .sorted(Comparator.comparingInt((Campaign c) -> ordenEstado(c.getStatus()))
                         .thenComparing(Campaign::getStartDate, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(Campaign::getCampaignName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                .map(c -> new CampaignReportRow(c.getCampaignName(), nombreCliente(clientes.get(c.getClientId()), c.getClientId()),
+                .map(c -> new CampaignReportRow(c.getCampaignName(), audiencia(c, clientes),
                         c.getCampaignType() != null ? c.getCampaignType().name() : null,
                         c.getStatus() != null ? c.getStatus().name() : null,
                         c.getStartDate(), c.getEndDate(), c.getPlatforms(), c.getObjective()))
@@ -61,6 +66,14 @@ public class CampaignReportService {
     static int ordenEstado(Campaign.CampaignStatus estado) {
         int i = estado == null ? -1 : ORDEN_ESTADOS.indexOf(estado);
         return i < 0 ? ORDEN_ESTADOS.size() : i;
+    }
+
+    /** Columna Cliente: nombre del cliente, "Segmento: <nombre>" o "Todos los clientes". */
+    private String audiencia(Campaign c, Map<String, Client> clientes) {
+        if (c.audienceOrDefault() != Campaign.AudienceType.CLIENT) {
+            return audienceService.describe(c, clientes);
+        }
+        return nombreCliente(clientes.get(c.getClientId()), c.getClientId());
     }
 
     private static String nombreCliente(Client client, String clientId) {

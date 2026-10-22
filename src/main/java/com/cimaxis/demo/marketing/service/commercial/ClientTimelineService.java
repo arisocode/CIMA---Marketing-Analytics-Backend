@@ -31,6 +31,7 @@ import com.cimaxis.demo.marketing.dto.commercial.TimelineStats;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
+import com.cimaxis.demo.marketing.service.campaigns.CampaignAudienceService;
 
 /**
  * Ficha 360° de un cliente: datos, estadisticas y linea de tiempo (mas reciente
@@ -55,19 +56,22 @@ public class ClientTimelineService {
     private final ProjectRepository projectRepository;
     private final CampaignRepository campaignRepository;
     private final ClientScoreService scoreService;
+    private final CampaignAudienceService audienceService;
 
     public ClientTimelineService(ClientRepository clientRepository,
                                  MarketingInteractionRepository interactionRepository,
                                  ProposalRepository proposalRepository,
                                  ProjectRepository projectRepository,
                                  CampaignRepository campaignRepository,
-                                 ClientScoreService scoreService) {
+                                 ClientScoreService scoreService,
+                                 CampaignAudienceService audienceService) {
         this.clientRepository = clientRepository;
         this.interactionRepository = interactionRepository;
         this.proposalRepository = proposalRepository;
         this.projectRepository = projectRepository;
         this.campaignRepository = campaignRepository;
         this.scoreService = scoreService;
+        this.audienceService = audienceService;
     }
 
     public ClientTimelineResponse timeline(String clientId) {
@@ -114,6 +118,8 @@ public class ClientTimelineService {
                     primera(c.getStartDate() != null ? c.getStartDate().atStartOfDay() : null, c.getCreatedAt()),
                     "Campaña " + texto(c.getCampaignName(), "#" + c.getCampaignId()),
                     unir(c.getCampaignType() != null ? "Tipo: " + c.getCampaignType().name() : null,
+                         c.audienceOrDefault() != Campaign.AudienceType.CLIENT
+                                 ? "Audiencia: " + audienceService.describe(c, null) : null,
                          c.getStatus() != null ? "Estado: " + c.getStatus().name() : null),
                     String.valueOf(c.getCampaignId())));
         }
@@ -171,10 +177,13 @@ public class ClientTimelineService {
                 unir(tipo, entrega, error), ref);
     }
 
-    /** Campañas del cliente y campañas en las que recibio interacciones, sin repetir. */
+    /**
+     * Campañas cuya audiencia actual incluye al cliente (suyas, de un segmento que lo
+     * contiene o de todos los clientes) y campañas en las que recibio interacciones.
+     */
     private List<Campaign> campanas(String clientId, List<MarketingInteraction> interacciones) {
         Map<Integer, Campaign> porId = new LinkedHashMap<>();
-        for (Campaign c : nullSafe(campaignRepository.findByClientId(clientId))) {
+        for (Campaign c : nullSafe(audienceService.campaignsForClient(clientId))) {
             porId.put(c.getCampaignId(), c);
         }
         Set<Integer> faltantes = new LinkedHashSet<>();

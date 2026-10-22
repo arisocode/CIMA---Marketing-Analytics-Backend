@@ -20,6 +20,7 @@ import com.cimaxis.demo.analytics.domain.Client;
 import com.cimaxis.demo.analytics.repository.ClientRepository;
 import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
+import com.cimaxis.demo.marketing.service.campaigns.CampaignAudienceService;
 
 /** Datos del reporte de campañas: nombre del cliente y orden por estado y fecha de inicio. */
 @ExtendWith(MockitoExtension.class)
@@ -28,6 +29,7 @@ class CampaignReportServiceTest {
 
     @Mock private CampaignRepository campaignRepository;
     @Mock private ClientRepository clientRepository;
+    @Mock private CampaignAudienceService audienceService;
 
     private CampaignReportService service;
 
@@ -41,7 +43,7 @@ class CampaignReportServiceTest {
         when(clientRepository.findAllById(any())).thenReturn(List.of(
                 Client.builder().clientId("c-1").additionalInfo("Ana Pérez").build(),
                 Client.builder().clientId("c-2").contactInfo("luis@cima.co").build()));
-        service = new CampaignReportService(campaignRepository, clientRepository);
+        service = new CampaignReportService(campaignRepository, clientRepository, audienceService);
     }
 
     @Test
@@ -60,6 +62,18 @@ class CampaignReportServiceTest {
         assertThat(filas.get(2).clientName()).isEqualTo("luis@cima.co");
         assertThat(filas.get(0).clientName()).isEqualTo("Cliente no sincronizado");
         assertThat(filas.get(1).type()).isEqualTo("Direct_sales");
+    }
+
+    @Test
+    @DisplayName("Campañas de segmento o de todos los clientes muestran su audiencia")
+    void audienciaNoCliente() {
+        Campaign segmento = Campaign.builder().campaignName("Oro activos").status(Campaign.CampaignStatus.Active)
+                .startDate(LocalDate.of(2026, 10, 2)).audienceType(Campaign.AudienceType.SEGMENT)
+                .campaignType(Campaign.CampaignType.Reactivation).build();
+        when(campaignRepository.findAll()).thenReturn(List.of(segmento));
+        when(audienceService.describe(any(), any())).thenReturn("Segmento: Oro activos");
+
+        assertThat(service.rows().get(0).clientName()).isEqualTo("Segmento: Oro activos");
     }
 
     private static Campaign campana(String nombre, Campaign.CampaignStatus estado, LocalDate inicio, String clientId) {
