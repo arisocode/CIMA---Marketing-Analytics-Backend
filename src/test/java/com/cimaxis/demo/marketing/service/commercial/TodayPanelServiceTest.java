@@ -29,6 +29,8 @@ import com.cimaxis.demo.marketing.domain.campaigns.Proposal;
 import com.cimaxis.demo.marketing.domain.campaigns.Proposal.ProposalStatus;
 import com.cimaxis.demo.marketing.domain.interactions.MarketingInteraction;
 import com.cimaxis.demo.marketing.dto.commercial.TodayResponse;
+import com.cimaxis.demo.marketing.dto.whatsapp.WhatsappPendingItem;
+import com.cimaxis.demo.marketing.service.whatsapp.WhatsappTaskService;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
 
@@ -41,6 +43,7 @@ class TodayPanelServiceTest {
     @Mock private MarketingInteractionRepository interactionRepository;
     @Mock private ProposalRepository proposalRepository;
     @Mock private ProjectRepository projectRepository;
+    @Mock private WhatsappTaskService whatsappTaskService;
 
     private TodayPanelService service;
     private List<Client> clientes;
@@ -74,7 +77,9 @@ class TodayPanelServiceTest {
 
         ClientScoreService scoreService = new ClientScoreService(
                 interactionRepository, proposalRepository, projectRepository, RELOJ);
-        service = new TodayPanelService(clientRepository, proposalRepository, scoreService);
+        when(whatsappTaskService.pending()).thenReturn(List.of(new WhatsappPendingItem(70, "c3", "Ceci",
+                "Hola Ceci, ¿hablamos?", dia(10, 20), "Reactivación")));
+        service = new TodayPanelService(clientRepository, proposalRepository, scoreService, whatsappTaskService);
     }
 
     @Test
@@ -138,6 +143,16 @@ class TodayPanelServiceTest {
 
         assertThat(hoy.clientsWithoutContact()).hasSize(20);
         assertThat(hoy.counts().clientsWithoutContact()).isEqualTo(28L);
+    }
+
+    @Test
+    @DisplayName("Incluye los WhatsApp pendientes de enviar a mano")
+    void whatsappPendientes() {
+        TodayResponse hoy = service.today(15, 7);
+
+        assertThat(hoy.whatsappPending()).hasSize(1);
+        assertThat(hoy.whatsappPending().get(0).workflowName()).isEqualTo("Reactivación");
+        assertThat(hoy.counts().whatsappPending()).isEqualTo(1L);
     }
 
     @Test

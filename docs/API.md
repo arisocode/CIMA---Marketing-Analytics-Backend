@@ -21,10 +21,12 @@ Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:280
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/marketing/campaigns` | `/api/v1/marketing/campaigns` | Lista todas las campañas comerciales. |
 | `POST` | `/api/v1/marketing/campaigns` | `/api/v1/marketing/campaigns` | Crea una nueva campaña publicitaria. |
-| `GET` | `/api/v1/marketing/campaigns/client/{clientId}` | `/api/v1/marketing/campaigns/client/{clientId}` | Lista campañas asociadas a un cliente específico. |
+| `GET` | `/api/v1/marketing/campaigns/client/{clientId}` | `/api/v1/marketing/campaigns/client/{clientId}` | Campañas cuya audiencia actual incluye al cliente (suyas, de un segmento que lo contiene o de todos). |
 | `GET` | `/api/v1/marketing/campaigns/{id}` | `/api/v1/marketing/campaigns/{id}` | Obtiene el detalle de una campaña por su identificador. |
 | `PUT` | `/api/v1/marketing/campaigns/{id}` | `/api/v1/marketing/campaigns/{id}` | Actualiza información, metas o presupuesto de campaña. |
 | `DELETE`| `/api/v1/marketing/campaigns/{id}` | `/api/v1/marketing/campaigns/{id}` | Elimina una campaña existente. |
+
+Audiencia: `audienceType` = `CLIENT` (por defecto; exige `clientId`), `SEGMENT` (exige `segmentId` de un segmento guardado activo) o `ALL`. La respuesta agrega `audienceType`, `segmentId`, `segmentName` y `audienceSize` (clientes que hoy forman la audiencia). **`clientId` puede venir `null`** en campañas SEGMENT o ALL. Al editar sin `audienceType` se conserva la audiencia actual.
 
 ### B. Propuestas Comerciales (`/proposals`)
 | Método | Endpoint Público KrakenD | Backend Interno | Descripción |
@@ -65,6 +67,11 @@ Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:280
 | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/marketing/segments/preview` | `/api/v1/marketing/segments/preview` | Previsualiza el recuento y perfiles del segmento según reglas. |
 | `POST` | `/api/v1/marketing/segments/{workflowId}/execute` | `/api/v1/marketing/segments/{workflowId}/execute` | Ejecuta un workflow sobre un segmento definido. |
+| `GET` | `/api/v1/marketing/segments/saved` | `/api/v1/marketing/segments/saved` | Segmentos guardados `[{segmentId, name, description, criteria, active, clientCount}]`. |
+| `POST` | `/api/v1/marketing/segments/saved` | `/api/v1/marketing/segments/saved` | Crea `{name, description, criteria}` (criteria = el mismo objeto de `/preview`). |
+| `PUT` | `/api/v1/marketing/segments/saved/{segmentId}` | `/api/v1/marketing/segments/saved/{segmentId}` | Edita el segmento. |
+| `PATCH` | `/api/v1/marketing/segments/saved/{segmentId}/active` | `/api/v1/marketing/segments/saved/{segmentId}/active` | `{active}`. 409 si una campaña activa lo usa. |
+| `GET` | `/api/v1/marketing/segments/saved/{segmentId}/clients` | `/api/v1/marketing/segments/saved/{segmentId}/clients` | `[{clientId, name, plan, lastContact, score}]`. |
 | `GET` | `/api/v1/marketing/workflows` | `/api/v1/marketing/workflows` | Lista todos los flujos de trabajo automatizados. |
 | `POST` | `/api/v1/marketing/workflows` | `/api/v1/marketing/workflows` | Crea una nueva definición de workflow. |
 | `GET` | `/api/v1/marketing/workflows/active` | `/api/v1/marketing/workflows/active` | Consulta workflows actualmente activos. |
@@ -73,11 +80,31 @@ Todas las peticiones públicas pasan a través de KrakenD (`http://localhost:280
 | `PUT` | `/api/v1/marketing/workflows/{id}` | `/api/v1/marketing/workflows/{id}` | Modifica la configuración de un workflow. |
 | `DELETE`| `/api/v1/marketing/workflows/{id}` | `/api/v1/marketing/workflows/{id}` | Elimina un workflow. |
 | `PATCH` | `/api/v1/marketing/workflows/{id}/toggle` | `/api/v1/marketing/workflows/{id}/toggle` | Activa o pausa la ejecución de un workflow. |
+| `GET` | `/api/v1/marketing/workflows/{id}/preview` | `/api/v1/marketing/workflows/{id}/preview` | `{campaignName, campaignActive, audienceType, audienceSize, nextRunAt, eligible[{clientId,name,plan}], skipped[{clientId,name,reason}]}`. |
+| `POST` | `/api/v1/marketing/workflows/{id}/run-now` | `/api/v1/marketing/workflows/{id}/run-now` | Evalúa solo ese workflow con las reglas del planificador: `{executed[{clientId,name,result,deliveryStatus,detail}], skipped[...]}`. |
 | `POST` | `/api/v1/marketing/executions/run/{workflowId}` | `/api/v1/marketing/executions/run/{workflowId}` | Dispara la ejecución manual de un workflow. |
 | `POST` | `/api/v1/marketing/executions/run/{workflowId}/client/{clientId}` | `/api/v1/marketing/executions/run/{workflowId}/client/{clientId}` | Ejecuta workflow para un cliente específico. |
 | `GET` | `/api/v1/marketing/executions/workflow/{workflowId}` | `/api/v1/marketing/executions/workflow/{workflowId}` | Historial de ejecuciones de un workflow. |
 | `GET` | `/api/v1/marketing/executions/client/{clientId}` | `/api/v1/marketing/executions/client/{clientId}` | Historial de ejecuciones recibidas por un cliente. |
 | `POST` | `/api/v1/marketing/scheduler/run` | `/api/v1/marketing/scheduler/run` | Dispara el ciclo del scheduler bajo demanda. |
+
+Disparadores (`WorkflowEligibilityService`, el mismo servicio para el planificador, la vista previa y "ejecutar ahora"). Todos actúan solo sobre la audiencia de la campaña y solo si la campaña está `Active` y hoy está entre sus fechas:
+- `scheduled_date`: exige `scheduledAt` (fecha y hora de Bogotá); actúa cuando ahora ≥ `scheduledAt`, una vez por cliente.
+- `no_contact_x_days`: último contacto hace más de `noContactDays` días (o nunca). Se repite si el último envío exitoso de ese workflow tiene más de N días.
+- `proposal_no_response`: propuesta Sent o In_negotiation sin respuesta creada hace N días o más. Se repite igual.
+- `project_completed`: algún proyecto completado; una vez por cliente.
+- `manual`: el planificador nunca lo corre; solo "ejecutar ahora" (toda la audiencia) o un segmento.
+- `noContactDays` solo se acepta en `no_contact_x_days` y `proposal_no_response`. Se mantienen los reintentos (máx. 3 fallos, espera de 60 min) y el cupo diario de correo.
+
+Acciones: `send_email`, `send_whatsapp` (queda como tarea manual), `log_followup`, `notify_admin` y **`send_portal_message`** (publica un mensaje OUTBOUND de "Equipo CIMA" en el portal del cliente).
+
+### E2. WhatsApp por enviar (admin y worker)
+| Método | Endpoint Público KrakenD | Backend Interno | Descripción |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/marketing/whatsapp/pending` | `/api/v1/marketing/whatsapp/pending` | `[{interactionId, clientId, clientName, message, createdAt, workflowName}]` (channel whatsapp, SIMULATED). |
+| `PATCH` | `/api/v1/marketing/whatsapp/pending/{interactionId}/sent` | `/api/v1/marketing/whatsapp/pending/{interactionId}/sent` | Marca `SENT_MANUAL` (desde ahí cuenta como contacto). 409 si no es un WhatsApp pendiente. |
+
+`GET /api/v1/marketing/today` agrega `whatsappPending` (máx. 20) y `counts.whatsappPending`.
 
 ---
 

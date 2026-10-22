@@ -1,6 +1,6 @@
 {
   "service": "marketing",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "endpoints": [
     {
       "endpoint": "/api/v1/marketing/campaigns",
@@ -209,6 +209,18 @@
       ]
     },
     {
+      "endpoint": "/api/v1/marketing/whatsapp/pending",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/whatsapp/pending",
+      "openapi_ref": "GET /api/marketing/whatsapp/pending"
+    },
+    {
+      "endpoint": "/api/v1/marketing/whatsapp/pending/{interactionId}/sent",
+      "method": "PATCH",
+      "backend_url": "/api/v1/marketing/whatsapp/pending/{interactionId}/sent",
+      "openapi_ref": "PATCH /api/marketing/whatsapp/pending/{interactionId}/sent"
+    },
+    {
       "endpoint": "/api/v1/marketing/me/summary",
       "method": "GET",
       "backend_url": "/api/v1/marketing/me/summary",
@@ -275,6 +287,36 @@
       "openapi_ref": "POST /api/marketing/segments/{workflowId}/execute"
     },
     {
+      "endpoint": "/api/v1/marketing/segments/saved",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/segments/saved",
+      "openapi_ref": "GET /api/marketing/segments/saved"
+    },
+    {
+      "endpoint": "/api/v1/marketing/segments/saved",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/segments/saved",
+      "openapi_ref": "POST /api/marketing/segments/saved"
+    },
+    {
+      "endpoint": "/api/v1/marketing/segments/saved/{segmentId}",
+      "method": "PUT",
+      "backend_url": "/api/v1/marketing/segments/saved/{segmentId}",
+      "openapi_ref": "PUT /api/marketing/segments/saved/{segmentId}"
+    },
+    {
+      "endpoint": "/api/v1/marketing/segments/saved/{segmentId}/active",
+      "method": "PATCH",
+      "backend_url": "/api/v1/marketing/segments/saved/{segmentId}/active",
+      "openapi_ref": "PATCH /api/marketing/segments/saved/{segmentId}/active"
+    },
+    {
+      "endpoint": "/api/v1/marketing/segments/saved/{segmentId}/clients",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/segments/saved/{segmentId}/clients",
+      "openapi_ref": "GET /api/marketing/segments/saved/{segmentId}/clients"
+    },
+    {
       "endpoint": "/api/v1/marketing/workflows",
       "method": "GET",
       "backend_url": "/api/v1/marketing/workflows",
@@ -321,6 +363,18 @@
       "method": "PATCH",
       "backend_url": "/api/v1/marketing/workflows/{id}/toggle",
       "openapi_ref": "PATCH /api/marketing/workflows/{id}/toggle"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows/{id}/preview",
+      "method": "GET",
+      "backend_url": "/api/v1/marketing/workflows/{id}/preview",
+      "openapi_ref": "GET /api/marketing/workflows/{id}/preview"
+    },
+    {
+      "endpoint": "/api/v1/marketing/workflows/{id}/run-now",
+      "method": "POST",
+      "backend_url": "/api/v1/marketing/workflows/{id}/run-now",
+      "openapi_ref": "POST /api/marketing/workflows/{id}/run-now"
     },
     {
       "endpoint": "/api/v1/marketing/executions/run/{workflowId}",

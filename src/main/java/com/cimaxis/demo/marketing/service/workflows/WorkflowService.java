@@ -62,6 +62,7 @@ public class WorkflowService {
 
         validarPlantilla(request);
         Workflow workflow = workflowMapper.toEntity(request);
+        validarDisparador(workflow);
         workflow.setCreatedAt(LocalDateTime.now());
         if (workflow.getActive() == null) {
             workflow.setActive(true);
@@ -74,6 +75,7 @@ public class WorkflowService {
         Workflow existing = requireWorkflow(id);
         validarPlantilla(request);
         workflowMapper.aplicarCambios(request, existing);
+        validarDisparador(existing);
         return workflowMapper.toResponse(workflowRepository.save(existing));
     }
 
@@ -93,6 +95,35 @@ public class WorkflowService {
             throw ResourceNotFoundException.de("Workflow", id);
         }
         workflowRepository.deleteById(id);
+    }
+
+    /**
+     * scheduled_date exige scheduledAt; noContactDays solo aplica a no_contact_x_days y
+     * proposal_no_response (y debe ser mayor que 0). scheduledAt se descarta en los demas.
+     */
+    static void validarDisparador(Workflow workflow) {
+        Workflow.TriggerType disparador = workflow.getTriggerType();
+        if (disparador == null) {
+            throw new IllegalArgumentException("El disparador (triggerType) es obligatorio");
+        }
+        if (disparador == Workflow.TriggerType.scheduled_date && workflow.getScheduledAt() == null) {
+            throw new IllegalArgumentException(
+                    "La fecha programada (scheduledAt) es obligatoria para el disparador scheduled_date");
+        }
+        if (disparador != Workflow.TriggerType.scheduled_date) {
+            workflow.setScheduledAt(null);
+        }
+        boolean usaDias = disparador == Workflow.TriggerType.no_contact_x_days
+                || disparador == Workflow.TriggerType.proposal_no_response;
+        if (workflow.getNoContactDays() != null) {
+            if (!usaDias) {
+                throw new IllegalArgumentException("noContactDays solo aplica a los disparadores "
+                        + "no_contact_x_days y proposal_no_response");
+            }
+            if (workflow.getNoContactDays() < 1) {
+                throw new IllegalArgumentException("noContactDays debe ser mayor que 0");
+            }
+        }
     }
 
     /** Si el workflow referencia una plantilla, debe existir y estar activa. */

@@ -2,6 +2,7 @@ package com.cimaxis.demo.marketing.domain.campaigns;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,8 +39,18 @@ public class Campaign {
     @Column(name = "campaign_type", nullable = false)
     private CampaignType campaignType;
 
-    @Column(name = "client_id", nullable = false, length = 36)
+    /** Cliente de la campaña; solo se usa (y es obligatorio) con audiencia CLIENT. */
+    @Column(name = "client_id", length = 36)
     private String clientId;
+
+    /** A quien va dirigida: un cliente, un segmento guardado o todos los clientes. null = CLIENT. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "audience_type", length = 10)
+    private AudienceType audienceType;
+
+    /** Segmento guardado (marketing_segments); solo con audiencia SEGMENT. */
+    @Column(name = "segment_id")
+    private UUID segmentId;
 
     @Column(name = "project_id", length = 36)
     private String projectId;
@@ -68,6 +79,15 @@ public class Campaign {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /** Audiencia efectiva: las campañas anteriores a este cambio (sin valor) son CLIENT. */
+    public AudienceType audienceOrDefault() {
+        return audienceType != null ? audienceType : AudienceType.CLIENT;
+    }
+
+    public enum AudienceType {
+        CLIENT, SEGMENT, ALL
+    }
 
     public enum CampaignType {
         Positioning, Direct_sales, Value_content, Testimonial, Reactivation

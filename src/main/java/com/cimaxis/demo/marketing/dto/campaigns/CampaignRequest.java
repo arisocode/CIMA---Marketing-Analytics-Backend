@@ -17,7 +17,12 @@ public class CampaignRequest {
 
     private String campaignName;
     private String campaignType;
+    /** CLIENT (por defecto), SEGMENT o ALL. */
+    private String audienceType;
+    /** Obligatorio solo con audienceType CLIENT. */
     private String clientId;
+    /** Segmento guardado; obligatorio solo con audienceType SEGMENT. */
+    private java.util.UUID segmentId;
     private String projectId;
     private LocalDate startDate;
     private LocalDate endDate;

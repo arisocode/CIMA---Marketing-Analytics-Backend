@@ -7,7 +7,8 @@ package com.cimaxis.demo.marketing.service.notifications;
  * FAILED: no se pudo entregar a crm-media (sin correo, error HTTP o de red).
  * SIMULATED: el envio real esta apagado (cimaxis.mail.enabled=false) o el canal no envia.
  * SKIPPED_LIMIT: se alcanzo el limite diario de correos; no se llamo a crm-media.
+ * SENT_MANUAL: un WhatsApp preparado por un workflow que el equipo marco como enviado a mano.
  */
 public enum DeliveryStatus {
-    QUEUED, FAILED, SIMULATED, SKIPPED_LIMIT
+    QUEUED, FAILED, SIMULATED, SKIPPED_LIMIT, SENT_MANUAL
 }

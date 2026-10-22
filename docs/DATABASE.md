@@ -46,6 +46,8 @@ Este documento describe el modelo relacional en PostgreSQL, la configuración de
 - `PROPOSALS.project_id` (varchar 36, nullable): proyecto de CIMAxios vinculado a una propuesta aprobada. Script opcional: `scripts/2026-10-21-propuesta-proyecto.sql`.
 - **`MARKETING_MESSAGES`**: Conversación comercial CIMA ↔ cliente (`direction` OUTBOUND/INBOUND, `body` máx. 4000, `read_at`).
 - `marketing_interactions.campaign_id` es nullable (mensajes del portal y decisiones de propuestas); `proposals.client_comment` y `proposals.decided_at`. Script obligatorio: `scripts/2026-10-21-portal-cliente.sql` (ddl-auto no quita el NOT NULL).
+- **`MARKETING_SEGMENTS`**: Segmentos guardados (nombre único, `criteria` con el JSON de SegmentCriteria, activo). Los clientes se recalculan en cada consulta.
+- `campaigns.audience_type` (CLIENT/SEGMENT/ALL), `campaigns.segment_id`, `campaigns.client_id` nullable; `workflows.scheduled_at`; acción `send_portal_message`; `delivery_status` `SENT_MANUAL`. Script obligatorio: `scripts/2026-10-22-audiencias-automatizaciones.sql`.
 - Migración manual: `scripts/2026-10-19-planes-correos-plantillas.sql` (quita el CHECK de `clients.plan` y registra planes heredados como inactivos).
 
 ---

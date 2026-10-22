@@ -27,7 +27,9 @@ import com.cimaxis.demo.analytics.repository.ClientRepository;
 import com.cimaxis.demo.analytics.repository.KpiSnapshotRepository;
 import com.cimaxis.demo.analytics.repository.ProjectRepository;
 import com.cimaxis.demo.marketing.domain.campaigns.Proposal;
+import com.cimaxis.demo.marketing.domain.campaigns.Campaign;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
+import com.cimaxis.demo.marketing.service.campaigns.CampaignAudienceService;
 
 @Service
 public class KpiDetailService {
@@ -40,19 +42,22 @@ public class KpiDetailService {
     private final ProposalRepository proposalRepository;
     private final KpiSnapshotRepository kpiSnapshotRepository;
     private final KpiSnapshotMapper kpiSnapshotMapper;
+    private final CampaignAudienceService audienceService;
 
     public KpiDetailService(KpiCalculationService kpiCalculationService,
                             ClientRepository clientRepository,
                             ProjectRepository projectRepository,
                             ProposalRepository proposalRepository,
                             KpiSnapshotRepository kpiSnapshotRepository,
-                            KpiSnapshotMapper kpiSnapshotMapper) {
+                            KpiSnapshotMapper kpiSnapshotMapper,
+                            CampaignAudienceService audienceService) {
         this.kpiCalculationService = kpiCalculationService;
         this.clientRepository = clientRepository;
         this.projectRepository = projectRepository;
         this.proposalRepository = proposalRepository;
         this.kpiSnapshotRepository = kpiSnapshotRepository;
         this.kpiSnapshotMapper = kpiSnapshotMapper;
+        this.audienceService = audienceService;
     }
 
     public KpiDetailDto getDetail(String kpiKey, String period) {
@@ -90,7 +95,7 @@ public class KpiDetailService {
                             null,
                             c.getStatus() != null ? c.getStatus().name() : null,
                             c.getClientId(),
-                            nombreCliente(clientes.get(c.getClientId()), c.getClientId())))
+                            audienciaCampana(c, clientes)))
                     .toList();
 
             case CLIENTS_CONTACTED -> itemsContacto(seleccion.contactedClients(), clientes, "interacción", "interacciones");
@@ -253,6 +258,14 @@ public class KpiDetailService {
             encontrados.forEach(c -> clientes.put(c.getClientId(), c));
         }
         return clientes;
+    }
+
+    /** Cliente de la campaña, o "Segmento: <nombre>" / "Todos los clientes" si la audiencia no es un cliente. */
+    private String audienciaCampana(Campaign c, Map<String, Client> clientes) {
+        if (c.audienceOrDefault() != Campaign.AudienceType.CLIENT && audienceService != null) {
+            return audienceService.describe(c, clientes);
+        }
+        return nombreCliente(clientes.get(c.getClientId()), c.getClientId());
     }
 
     static String nombreCliente(Client client, String fallbackId) {

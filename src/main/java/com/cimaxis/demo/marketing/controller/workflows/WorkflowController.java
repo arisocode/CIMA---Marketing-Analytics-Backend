@@ -18,7 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cimaxis.demo.marketing.dto.workflows.WorkflowRequest;
 import com.cimaxis.demo.marketing.dto.workflows.WorkflowResponse;
+import com.cimaxis.demo.marketing.dto.workflows.WorkflowPreviewResponse;
+import com.cimaxis.demo.marketing.dto.workflows.WorkflowRunNowResponse;
+import com.cimaxis.demo.marketing.service.workflows.WorkflowAutomationService;
 import com.cimaxis.demo.marketing.service.workflows.WorkflowService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Endpoints de definicion de workflows.
@@ -29,6 +34,21 @@ import com.cimaxis.demo.marketing.service.workflows.WorkflowService;
 public class WorkflowController {
 
     private final WorkflowService workflowService;
+    private final WorkflowAutomationService automationService;
+
+    /** A quien le llegaria hoy la automatizacion y por que no a los demas (mismas reglas del planificador). */
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<WorkflowPreviewResponse> preview(@PathVariable Integer id) {
+        return ResponseEntity.ok(automationService.preview(id));
+    }
+
+    /** Evalua solo este workflow con las reglas del planificador y ejecuta la accion para los elegibles. */
+    @PostMapping("/{id}/run-now")
+    @PreAuthorize("hasAnyRole('admin','worker')")
+    public ResponseEntity<WorkflowRunNowResponse> runNow(@PathVariable Integer id, HttpServletRequest request) {
+        // Igual que el planificador: usa los datos de clientes sincronizados en marketing (sin llamar al CRM).
+        return ResponseEntity.ok(automationService.runNow(id, null, (String) request.getAttribute("userId")));
+    }
 
     @GetMapping
     public ResponseEntity<List<WorkflowResponse>> getAll() {

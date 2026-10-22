@@ -15,6 +15,8 @@ import com.cimaxis.demo.analytics.repository.ClientRepository;
 import com.cimaxis.demo.marketing.domain.campaigns.Proposal;
 import com.cimaxis.demo.marketing.domain.campaigns.Proposal.ProposalStatus;
 import com.cimaxis.demo.marketing.dto.commercial.TodayResponse;
+import com.cimaxis.demo.marketing.dto.whatsapp.WhatsappPendingItem;
+import com.cimaxis.demo.marketing.service.whatsapp.WhatsappTaskService;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 
 /**
@@ -25,6 +27,7 @@ import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
  *   <li>proposalsWithoutResponse: Sent o In_negotiation abiertas hace mas de N dias
  *       (desde createdDate), de la mas antigua a la mas reciente.</li>
  *   <li>approvedWithoutProject: Approved sin projectId, la aprobada hace mas tiempo primero.</li>
+ *   <li>whatsappPending: WhatsApp preparados por workflows que falta enviar a mano.</li>
  * </ul>
  * Cada lista se limita a 20 elementos; counts trae el total real.
  */
@@ -38,13 +41,16 @@ public class TodayPanelService {
     private final ClientRepository clientRepository;
     private final ProposalRepository proposalRepository;
     private final ClientScoreService scoreService;
+    private final WhatsappTaskService whatsappTaskService;
 
     public TodayPanelService(ClientRepository clientRepository,
                              ProposalRepository proposalRepository,
-                             ClientScoreService scoreService) {
+                             ClientScoreService scoreService,
+                             WhatsappTaskService whatsappTaskService) {
         this.clientRepository = clientRepository;
         this.proposalRepository = proposalRepository;
         this.scoreService = scoreService;
+        this.whatsappTaskService = whatsappTaskService;
     }
 
     public TodayResponse today(Integer daysWithoutContact, Integer daysWithoutResponse) {
@@ -102,11 +108,16 @@ public class TodayPanelService {
                         CommercialFacts.nombre(porId.get(p.getClientId())), p.getEstimatedValue()))
                 .toList();
 
+        List<WhatsappPendingItem> whatsapp = whatsappTaskService != null
+                ? nullSafe(whatsappTaskService.pending()) : List.of();
+
         return new TodayResponse(
                 olvidados.stream().limit(LIMITE).toList(),
                 sinRespuestaLista.stream().limit(LIMITE).toList(),
                 aprobadas,
-                new TodayResponse.Counts(olvidados.size(), sinRespuestaLista.size(), aprobadasSinProyecto.size()));
+                whatsapp.stream().limit(LIMITE).toList(),
+                new TodayResponse.Counts(olvidados.size(), sinRespuestaLista.size(), aprobadasSinProyecto.size(),
+                        whatsapp.size()));
     }
 
     private static int validar(Integer valor, int porDefecto, String campo) {

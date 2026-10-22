@@ -36,6 +36,7 @@ import com.cimaxis.demo.marketing.dto.commercial.TimelineEvent;
 import com.cimaxis.demo.marketing.repository.campaigns.CampaignRepository;
 import com.cimaxis.demo.marketing.repository.campaigns.ProposalRepository;
 import com.cimaxis.demo.marketing.repository.interactions.MarketingInteractionRepository;
+import com.cimaxis.demo.marketing.service.campaigns.CampaignAudienceService;
 
 /** Ficha 360° del cliente: datos, estadisticas y linea de tiempo descendente. */
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +48,7 @@ class ClientTimelineServiceTest {
     @Mock private ProposalRepository proposalRepository;
     @Mock private ProjectRepository projectRepository;
     @Mock private CampaignRepository campaignRepository;
+    @Mock private CampaignAudienceService audienceService;
 
     private ClientTimelineService service;
 
@@ -64,7 +66,7 @@ class ClientTimelineServiceTest {
                         LocalDate.of(2026, 10, 14), "1000", "p-x"),
                 propuesta(5, "c1", ProposalStatus.Sent, LocalDate.of(2026, 10, 18), null, "500", null)));
         when(projectRepository.findByClientId("c1")).thenReturn(List.of());
-        when(campaignRepository.findByClientId("c1")).thenReturn(List.of(Campaign.builder()
+        when(audienceService.campaignsForClient("c1")).thenReturn(List.of(Campaign.builder()
                 .campaignId(7).campaignName("Lanzamiento").campaignType(Campaign.CampaignType.Direct_sales)
                 .status(Campaign.CampaignStatus.Active).startDate(LocalDate.of(2026, 10, 1)).build()));
         when(campaignRepository.findAllById(any())).thenReturn(List.of(Campaign.builder()
@@ -74,7 +76,7 @@ class ClientTimelineServiceTest {
         ClientScoreService scoreService = new ClientScoreService(
                 interactionRepository, proposalRepository, projectRepository, RELOJ);
         service = new ClientTimelineService(clientRepository, interactionRepository, proposalRepository,
-                projectRepository, campaignRepository, scoreService);
+                projectRepository, campaignRepository, scoreService, audienceService);
     }
 
     @Test

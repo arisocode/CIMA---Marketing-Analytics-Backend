@@ -68,7 +68,7 @@ class KpiDetailServiceTest {
         kpiCalculationService = new KpiCalculationService(clientRepository, projectRepository,
                 proposalRepository, campaignRepository, interactionRepository, kpiSnapshotRepository, mapper);
         service = new KpiDetailService(kpiCalculationService, clientRepository, projectRepository,
-                proposalRepository, kpiSnapshotRepository, mapper);
+                proposalRepository, kpiSnapshotRepository, mapper, null);
 
         when(clientRepository.findAllById(anyIterable())).thenReturn(List.of(ana, luis, sinNombre));
         when(clientRepository.findByCreatedAtBetween(any(), any())).thenReturn(List.of(ana, sinNombre));

@@ -3,10 +3,13 @@ package com.cimaxis.demo.marketing.dto.commercial;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.cimaxis.demo.marketing.dto.whatsapp.WhatsappPendingItem;
+
 /** Panel Hoy. Cada lista trae maximo 20 elementos; counts trae el total real. */
 public record TodayResponse(List<ClientWithoutContact> clientsWithoutContact,
                             List<ProposalWithoutResponse> proposalsWithoutResponse,
                             List<ApprovedWithoutProject> approvedWithoutProject,
+                            List<WhatsappPendingItem> whatsappPending,
                             Counts counts) {
 
     /** daysSinceContact null = nunca fue contactado. */
@@ -21,6 +24,7 @@ public record TodayResponse(List<ClientWithoutContact> clientsWithoutContact,
                                          String clientName, BigDecimal value) {
     }
 
-    public record Counts(long clientsWithoutContact, long proposalsWithoutResponse, long approvedWithoutProject) {
+    public record Counts(long clientsWithoutContact, long proposalsWithoutResponse, long approvedWithoutProject,
+                         long whatsappPending) {
     }
 }
